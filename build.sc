@@ -6,4 +6,12 @@ object slox extends ScalaModule with ScalafmtModule {
   def ivyDeps = Agg(
     ivy"org.typelevel::cats-effect:3.3.7"
   )
+
+  object test extends Tests {
+    def ivyDeps = Agg(
+      ivy"com.disneystreaming::weaver-cats:0.7.11",
+      ivy"com.disneystreaming::weaver-scalacheck:0.7.11"
+    )
+    def testFramework = "weaver.framework.CatsEffect"
+  }
 }
