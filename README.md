@@ -1,6 +1,6 @@
 # lox
 
-Implementations of the "lox" interpreter, from https://github.com/munificent/craftinginterpreters.
+Implementations of the "lox" interpreter, from the [Crafting Interpreters] book.
 
 ## Scala 3 build
 
@@ -24,3 +24,5 @@ mill _.assembly
 java -jar out/slox/assembly.dest/out.jar
 java -jar out/slox/assembly.dest/out.jar <path>
 ```
+
+[crafting interpreters]: https://github.com/munificent/craftinginterpreters
