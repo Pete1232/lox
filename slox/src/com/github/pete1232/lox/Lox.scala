@@ -1,50 +1,37 @@
 package com.github.pete1232.lox
 
+import cats.effect.{IO, IOApp}
+import cats.effect.ExitCode
+import cats.effect.kernel.Resource
+import cats.implicits.*
 import scala.io.Source
-import java.nio.charset.Charset
-import java.io.InputStreamReader
-import java.io.BufferedReader
-import scala.util.Try
-import scala.util.Failure
-import scala.util.Success
+import scala.util.*
 
-object Lox:
-  @main def main(args: String*): Unit =
-    if (args.length > 1)
-      println("Usage: slox [script]")
-      System.exit(64)
-    else if (args.length == 1)
-      runFile(args.head)
-    else
-      runPrompt()
+import java.io.EOFException
+import java.nio.file.Files
+import java.nio.file.Path
 
-  private def runFile(path: String): Unit =
-    val bytes = Source.fromFile(path).map(_.byteValue).toArray
-    run(new String(bytes, Charset.defaultCharset))
+object Lox extends IOApp:
+  final def run(args: List[String]): IO[ExitCode] =
+    args match
+      case Nil       => runPrompt().map(_ => ExitCode.Success)
+      case hd :: Nil => runFile(hd).map(_ => ExitCode.Success)
+      case _ => IO.println("Usage: slox [script]").map(_ => ExitCode(64))
 
-  private def runPrompt(): Unit = {
-    val input = new InputStreamReader(System.in)
-    val reader = new BufferedReader(input)
+  private def runFile(path: String): IO[Unit] =
+    IO
+      .blocking(Files.readString(Path.of(path)))
+      .flatMap(runScan)
 
-    @scala.annotation.tailrec
-    def loop(): Unit = {
-      print("> ")
-      val line = Try(reader.readLine())
+  private def runPrompt(): IO[Unit] =
+    (for
+      _ <- IO.print("> ")
+      l <- IO.readLine
+      _ <- runScan(l)
+      _ <- runPrompt()
+    yield (): Unit).recoverWith { case e: EOFException => IO.println(":quit") }
 
-      line match
-        case Success(l) =>
-          if (l != null)
-            println(l)
-            run(l)
-            loop()
-          else println("Exit")
-        case Failure(e) => println("Exception")
-    }
-
-    loop()
-  }
-
-  private def run(source: String): Unit = {
+  private def runScan(source: String): IO[Unit] = {
     // todo for now just printing the tokens
-    for (token <- Scanner(source).tokens) println(token)
+    Scanner(source).tokens.map(IO.println).sequence.map(_ => (): Unit)
   }
