@@ -7,6 +7,10 @@ object slox extends ScalaModule with ScalafmtModule {
     ivy"org.typelevel::cats-effect:3.3.7"
   )
 
+  def scalacOptions = Seq(
+    "-Xfatal-warnings"
+  )
+
   object test extends Tests {
     def ivyDeps = Agg(
       ivy"com.disneystreaming::weaver-cats:0.7.11",

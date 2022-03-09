@@ -19,7 +19,6 @@ object Lox extends IOApp:
     IO
       .blocking(Files.readString(Path.of(path)))
       .flatMap(runScan)
-      .map(_ => ExitCode.Success)
       .recoverWith(ErrorHandler.file)
 
   private def runPrompt(): IO[ExitCode] =
@@ -27,12 +26,16 @@ object Lox extends IOApp:
       _ <- IO.print("> ")
       l <- IO.readLine
       _ <- runScan(l)
-      _ <- runPrompt()
-    yield ExitCode.Success).recoverWith(ErrorHandler.repl)
+      result <- runPrompt()
+    yield result).recoverWith(ErrorHandler.repl)
 
-  private def runScan(source: String): IO[Unit] =
+  private def runScan(source: String): IO[ExitCode] =
     // todo for now just printing the tokens
-    Scanner(source).tokens.map(IO.println).sequence.map(_ => (): Unit)
+    Scanner(source).tokens
+      .map(IO.println)
+      .sequence
+      .map(_ => ExitCode.Success)
+      .recoverWith(ErrorHandler.scanner)
 
   object ErrorHandler:
 
@@ -43,4 +46,11 @@ object Lox extends IOApp:
     val file: PartialFunction[Throwable, IO[ExitCode]] = {
       case _: NoSuchFileException =>
         IO.println(":file not found").map(_ => ExitCode.Error)
+    }
+
+    val scanner: PartialFunction[Throwable, IO[ExitCode]] = {
+      case scan: ScannerError =>
+        scan match
+          case ScannerError.ParseError =>
+            IO.println(":scanner parse error").map(_ => ExitCode.Error)
     }
