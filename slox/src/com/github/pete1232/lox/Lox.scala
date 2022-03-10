@@ -13,7 +13,7 @@ object Lox extends IOApp:
     args match
       case Nil       => runPrompt()
       case hd :: Nil => runFile(hd)
-      case _ => IO.println("Usage: slox [script]").map(_ => ExitCode.Error)
+      case _ => IO.println("Usage: slox [script]").map(_ => ExitCode(64))
 
   private def runFile(path: String): IO[ExitCode] =
     IO
@@ -51,6 +51,7 @@ object Lox extends IOApp:
     val scanner: PartialFunction[Throwable, IO[ExitCode]] = {
       case scan: ScannerError =>
         scan match
-          case ScannerError.ParseError =>
-            IO.println(":scanner parse error").map(_ => ExitCode.Error)
+          case ScannerError.ParseError(line, where, message) =>
+            IO.println(s"[line $line] Error$where: $message")
+              .map(_ => ExitCode(65))
     }
