@@ -8,6 +8,6 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
 
   test("return a Token containing the whole input") {
     forall(Gen.alphaStr) { s =>
-      expect(Scanner(s).tokens == List(Token(s)))
+      expect(DefaultScanner.scan(s) == List(Token(s)))
     }
   }
