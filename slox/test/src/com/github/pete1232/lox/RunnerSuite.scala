@@ -10,7 +10,7 @@ import java.io.EOFException
 object RunnerSuite extends SimpleIOSuite:
 
   object MockScanner extends Scanner:
-    def scan(source: String): List[Token] = Nil
+    def scan(source: String): List[Either[ScannerError, Token]] = Nil
 
   val runner = Runner(MockScanner)
 
