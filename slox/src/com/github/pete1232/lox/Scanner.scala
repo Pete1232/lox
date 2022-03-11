@@ -4,4 +4,6 @@ trait Scanner:
   def scan(source: String): List[Token]
 
 object DefaultScanner extends Scanner:
-  def scan(source: String): List[Token] = List(Token(source))
+  def scan(source: String): List[Token] = List(
+    Token(TokenType.SingleCharacter.Comma, source, null, 10)
+  )
