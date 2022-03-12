@@ -7,11 +7,24 @@ object ScannerSuite extends SimpleIOSuite:
 
   pureTest("scan tokens with a single character") {
     import TokenType.SingleCharacter.*
-    val bracesResult = DefaultScanner.scan("()")
+    val bracesResult = DefaultScanner.scan("(){},.-+;/*!=><")
     expect(
-      bracesResult == List(
-        Right(SimpleToken(LeftParen, 0)),
-        Right(SimpleToken(RightParen, 0))
+      bracesResult.flatMap(_.toSeq) == List(
+        SimpleToken(LeftParen, 0),
+        SimpleToken(RightParen, 0),
+        SimpleToken(LeftBrace, 0),
+        SimpleToken(RightBrace, 0),
+        SimpleToken(Comma, 0),
+        SimpleToken(Dot, 0),
+        SimpleToken(Minus, 0),
+        SimpleToken(Plus, 0),
+        SimpleToken(Semicolon, 0),
+        SimpleToken(Slash, 0),
+        SimpleToken(Star, 0),
+        SimpleToken(Bang, 0),
+        SimpleToken(Equal, 0),
+        SimpleToken(Greater, 0),
+        SimpleToken(Less, 0)
       )
     )
   }

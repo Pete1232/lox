@@ -25,6 +25,11 @@ object DefaultScanner extends Scanner:
         case '+' => SingleCharacter.Plus.some
         case ';' => SingleCharacter.Semicolon.some
         case '*' => SingleCharacter.Star.some
+        case '/' => SingleCharacter.Slash.some
+        case '!' => SingleCharacter.Bang.some
+        case '=' => SingleCharacter.Equal.some
+        case '>' => SingleCharacter.Greater.some
+        case '<' => SingleCharacter.Less.some
         case _   => None
 
       tokenType match
