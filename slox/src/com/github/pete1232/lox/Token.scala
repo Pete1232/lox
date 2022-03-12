@@ -2,13 +2,28 @@ package com.github.pete1232.lox
 
 import cats.Show
 
-final case class Token(
-    tokenType: TokenType,
-    lexeme: String,
-    literal: Object,
-    line: Int
-)
+sealed trait Token:
+  def tokenType: TokenType
+  def line: Int
 
 object Token:
   implicit val showToken: Show[Token] =
-    Show.show(t => s"${t.tokenType} ${t.lexeme} ${t.literal}")
+    Show.show { t =>
+      t match
+        case SimpleToken(tokenType, line) =>
+          s"[$line] $tokenType"
+        case LiteralToken(tokenType, lexeme, literal, line) =>
+          s"[$line] $tokenType, $lexeme, $literal"
+    }
+
+  final case class SimpleToken(
+      tokenType: TokenType,
+      line: Int
+  ) extends Token
+
+  final case class LiteralToken(
+      tokenType: TokenType,
+      lexeme: String,
+      literal: Object,
+      line: Int
+  ) extends Token

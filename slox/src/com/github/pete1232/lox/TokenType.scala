@@ -1,19 +1,61 @@
 package com.github.pete1232.lox
 
+import scala.collection.View.Single
+
 sealed trait TokenType
 
 object TokenType:
 
-  enum SingleCharacter extends TokenType:
-    case LeftParen, RightParen, LeftBrace, RightBrace, Comma, Dot, Minus, Plus,
-      Semicolon, Slash, Star, Bang, Equal, Greater, Less
+  enum SingleCharacter(val lexeme: String) extends TokenType:
+    case LeftParen extends SingleCharacter("(")
+    case RightParen extends SingleCharacter(")")
+    case LeftBrace extends SingleCharacter("{")
+    case RightBrace extends SingleCharacter("}")
+    case Comma extends SingleCharacter(",")
+    case Dot extends SingleCharacter(".")
+    case Minus extends SingleCharacter("-")
+    case Plus extends SingleCharacter("+")
+    case Semicolon extends SingleCharacter(";")
+    case Slash extends SingleCharacter("/")
+    case Star extends SingleCharacter("*")
+    case Bang extends SingleCharacter("!")
+    case Equal extends SingleCharacter("=")
+    case Greater extends SingleCharacter(">")
+    case Less extends SingleCharacter("<")
 
-  enum TwoCharacter extends TokenType:
-    case BangEqual, EqualEqual, GreaterEqual, LessEqual
+    def fromString(s: String): Option[TokenType] =
+      SingleCharacter.values.find(_.lexeme == s)
 
-  enum Literal extends TokenType:
-    case Identifier, String, Number
+  enum TwoCharacter(val lexeme: String) extends TokenType:
+    case BangEqual extends TwoCharacter("!=")
+    case EqualEqual extends TwoCharacter("==")
+    case GreaterEqual extends TwoCharacter(">=")
+    case LessEqual extends TwoCharacter("<=")
 
-  enum Keywords extends TokenType:
-    case And, Class, Else, False, Fun, For, If, Nil, Or, Print, Return, Super,
-      This, True, Var, While, EOF
+    def fromString(s: String): Option[TokenType] =
+      SingleCharacter.values.find(_.lexeme == s)
+
+  enum Literal:
+    case Identifier, StringLiteral, NumberLiteral
+
+  enum Keyword(val lexeme: String) extends TokenType:
+    case And extends Keyword("and")
+    case Class extends Keyword("class")
+    case Else extends Keyword("else")
+    case False extends Keyword("false")
+    case Fun extends Keyword("fun")
+    case For extends Keyword("for")
+    case If extends Keyword("if")
+    case Nil extends Keyword("nil")
+    case Or extends Keyword("or")
+    case Print extends Keyword("print")
+    case Return extends Keyword("return")
+    case Super extends Keyword("super")
+    case This extends Keyword("this")
+    case True extends Keyword("true")
+    case Var extends Keyword("var")
+    case While extends Keyword("while")
+    case EOF extends Keyword("eof")
+
+    def fromString(s: String): Option[TokenType] =
+      SingleCharacter.values.find(_.lexeme == s)

@@ -30,7 +30,7 @@ object DefaultScanner extends Scanner:
       tokenType match
         case None =>
           Left(ScannerError.ParseError(0, "", "Unexpected character."))
-        case Some(t) => Token(t, c.toString, null, 0).asRight
+        case Some(t) => Token.SimpleToken(t, 0).asRight
     }
 
     nextToken match

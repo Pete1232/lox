@@ -1,6 +1,7 @@
 package com.github.pete1232.lox
 
 import weaver.SimpleIOSuite
+import Token.*
 
 object ScannerSuite extends SimpleIOSuite:
 
@@ -9,8 +10,8 @@ object ScannerSuite extends SimpleIOSuite:
     val bracesResult = DefaultScanner.scan("()")
     expect(
       bracesResult == List(
-        Right(Token(LeftParen, "(", null, 0)),
-        Right(Token(RightParen, ")", null, 0))
+        Right(SimpleToken(LeftParen, 0)),
+        Right(SimpleToken(RightParen, 0))
       )
     )
   }
@@ -20,9 +21,9 @@ object ScannerSuite extends SimpleIOSuite:
     val hashResult = DefaultScanner.scan("+#-")
     expect(
       hashResult == List(
-        Right(Token(Plus, "+", null, 0)),
+        Right(SimpleToken(Plus, 0)),
         Left(ScannerError.ParseError(0, "", "Unexpected character.")),
-        Right(Token(Minus, "-", null, 0))
+        Right(SimpleToken(Minus, 0))
       )
     )
   }
