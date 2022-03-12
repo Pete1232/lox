@@ -23,6 +23,7 @@ object TokenType:
     case Greater extends SingleCharacter(">")
     case Less extends SingleCharacter("<")
 
+  object SingleCharacter:
     def fromString(s: String): Option[TokenType] =
       SingleCharacter.values.find(_.lexeme == s)
 
@@ -32,8 +33,9 @@ object TokenType:
     case GreaterEqual extends TwoCharacter(">=")
     case LessEqual extends TwoCharacter("<=")
 
+  object TwoCharacter:
     def fromString(s: String): Option[TokenType] =
-      SingleCharacter.values.find(_.lexeme == s)
+      TwoCharacter.values.find(_.lexeme == s)
 
   enum Literal:
     case Identifier, StringLiteral, NumberLiteral
@@ -57,5 +59,6 @@ object TokenType:
     case While extends Keyword("while")
     case EOF extends Keyword("eof")
 
+  object Keyword:
     def fromString(s: String): Option[TokenType] =
-      SingleCharacter.values.find(_.lexeme == s)
+      Keyword.values.find(_.lexeme == s)

@@ -12,30 +12,10 @@ object DefaultScanner extends Scanner:
       results: List[Either[ScannerError, Token]]
   ): List[Either[ScannerError, Token]] = {
     val nextToken = remainingInput.headOption.map { c =>
-      import TokenType.*
-      import cats.implicits._
-      val tokenType = c match
-        case '(' => SingleCharacter.LeftParen.some
-        case ')' => SingleCharacter.RightParen.some
-        case '{' => SingleCharacter.LeftBrace.some
-        case '}' => SingleCharacter.RightBrace.some
-        case ',' => SingleCharacter.Comma.some
-        case '.' => SingleCharacter.Dot.some
-        case '-' => SingleCharacter.Minus.some
-        case '+' => SingleCharacter.Plus.some
-        case ';' => SingleCharacter.Semicolon.some
-        case '*' => SingleCharacter.Star.some
-        case '/' => SingleCharacter.Slash.some
-        case '!' => SingleCharacter.Bang.some
-        case '=' => SingleCharacter.Equal.some
-        case '>' => SingleCharacter.Greater.some
-        case '<' => SingleCharacter.Less.some
-        case _   => None
-
-      tokenType match
+      TokenType.SingleCharacter.fromString(c.toString) match
         case None =>
           Left(ScannerError.ParseError(0, "", "Unexpected character."))
-        case Some(t) => Token.SimpleToken(t, 0).asRight
+        case Some(t) => Right(Token.SimpleToken(t, 0))
     }
 
     nextToken match
