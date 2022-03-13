@@ -81,3 +81,24 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
       )
     )
   }
+
+  pureTest("report the line correctly") {
+    import TokenType.SingleCharacter.*
+    val result = DefaultScanner.scan("+\n* \n / // this is a comment \n- #")
+    expect(
+      result == List(
+        Right(SimpleToken(Plus, 0)),
+        Right(SimpleToken(Star, 1)),
+        Right(SimpleToken(Slash, 2)),
+        Right(SimpleToken(Minus, 3)),
+        Left(
+          ScannerError.ParseError(
+            3,
+            "",
+            "Unexpected character parsing one character token.",
+            "#"
+          )
+        )
+      )
+    )
+  }

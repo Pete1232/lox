@@ -7,10 +7,11 @@ trait Scanner:
 
 object DefaultScanner extends Scanner:
   def scan(source: String): List[Either[ScannerError, Token]] =
-    scanLoop(source, Nil)
+    scanLoop(source, 0, Nil)
 
   private def scanLoop(
       remainingInput: String,
+      currentLine: Int,
       results: List[Either[ScannerError, Token]]
   ): List[Either[ScannerError, Token]] = {
     import ScannerResult.*
@@ -19,14 +20,13 @@ object DefaultScanner extends Scanner:
     lazy val secondCharacter = remainingInput.tail.headOption
     lazy val remainingAfterNewLine = remainingInput.dropWhile(_ != '\n').tail
 
-    // todo line number
     def singleCharacterResult(char: Char) =
       TokenType.SingleCharacter
         .fromString(char.toString)
-        .map(tokenType => ValidToken(Token.SimpleToken(tokenType, 0)))
+        .map(tokenType => ValidToken(Token.SimpleToken(tokenType, currentLine)))
         .toRight(
           ScannerError.ParseError(
-            0,
+            currentLine,
             "",
             "Unexpected character parsing one character token.",
             char.toString
@@ -53,11 +53,11 @@ object DefaultScanner extends Scanner:
                     TwoCharacter
                       .fromString(lexeme)
                       .map(tokenType =>
-                        ValidToken(Token.SimpleToken(tokenType, 0))
+                        ValidToken(Token.SimpleToken(tokenType, currentLine))
                       )
                       .toRight(
                         ScannerError.ParseError(
-                          0,
+                          currentLine,
                           "",
                           "Unexpected character parsing two character token.",
                           lexeme
@@ -67,14 +67,22 @@ object DefaultScanner extends Scanner:
 
     nextToken match
       case Right(EOF)   => results
-      case Right(Space) => scanLoop(remainingInput.tail, results)
+      case Right(Space) => scanLoop(remainingInput.tail, currentLine, results)
       case Right(NewLine) | Right(Comment) =>
-        scanLoop(remainingAfterNewLine, results)
+        scanLoop(remainingAfterNewLine, currentLine + 1, results)
       case Right(ValidToken(token)) =>
         // todo should enforce some kind of whitespace after a valid token
-        scanLoop(remainingInput.drop(token.length), results :+ Right(token))
+        scanLoop(
+          remainingInput.drop(token.length),
+          currentLine,
+          results :+ Right(token)
+        )
       case Left(err) =>
-        scanLoop(remainingInput.drop(err.lexeme.length), results :+ Left(err))
+        scanLoop(
+          remainingInput.drop(err.lexeme.length),
+          currentLine,
+          results :+ Left(err)
+        )
   }
 
   enum ScannerResult:
