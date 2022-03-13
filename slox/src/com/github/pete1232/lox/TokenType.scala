@@ -1,6 +1,7 @@
 package com.github.pete1232.lox
 
 import scala.collection.View.Single
+import cats.Show
 
 sealed trait TokenType
 
@@ -24,6 +25,9 @@ object TokenType:
     case Less extends SingleCharacter("<")
 
   object SingleCharacter:
+    implicit val showSingleCharacter: Show[TokenType.SingleCharacter] =
+      Show.fromToString
+
     def fromString(s: String): Option[TokenType] =
       SingleCharacter.values.find(_.lexeme == s)
 

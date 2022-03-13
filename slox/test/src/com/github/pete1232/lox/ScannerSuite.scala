@@ -2,31 +2,19 @@ package com.github.pete1232.lox
 
 import weaver.SimpleIOSuite
 import Token.*
+import org.scalacheck.Gen
+import weaver.scalacheck.Checkers
 
-object ScannerSuite extends SimpleIOSuite:
+object ScannerSuite extends SimpleIOSuite with Checkers:
 
-  pureTest("scan tokens with a single character") {
-    import TokenType.SingleCharacter.*
-    val bracesResult = DefaultScanner.scan("(){},.-+;/*!=><")
-    expect(
-      bracesResult.flatMap(_.toSeq) == List(
-        SimpleToken(LeftParen, 0),
-        SimpleToken(RightParen, 0),
-        SimpleToken(LeftBrace, 0),
-        SimpleToken(RightBrace, 0),
-        SimpleToken(Comma, 0),
-        SimpleToken(Dot, 0),
-        SimpleToken(Minus, 0),
-        SimpleToken(Plus, 0),
-        SimpleToken(Semicolon, 0),
-        SimpleToken(Slash, 0),
-        SimpleToken(Star, 0),
-        SimpleToken(Bang, 0),
-        SimpleToken(Equal, 0),
-        SimpleToken(Greater, 0),
-        SimpleToken(Less, 0)
-      )
-    )
+  val singleCharacterTokenGen: Gen[TokenType.SingleCharacter] =
+    Gen.oneOf(TokenType.SingleCharacter.values)
+
+  test("scan tokens with a single character") {
+    forall(singleCharacterTokenGen) { token =>
+      val result = DefaultScanner.scan(token.lexeme).flatMap(_.toSeq)
+      expect(result == List(SimpleToken(token, 0)))
+    }
   }
 
   pureTest("report an error for unknown characters") {
