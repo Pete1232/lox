@@ -44,3 +44,10 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
       )
     )
   }
+
+  test("ignore everything on a comment line") {
+    forall(Gen.alphaStr) { s =>
+      val commentResult = DefaultScanner.scan("//" + s)
+      expect(commentResult == Nil)
+    }
+  }
