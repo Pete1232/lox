@@ -5,14 +5,6 @@ import com.github.pete1232.lox.TokenType.TwoCharacter
 trait Scanner:
   def scan(source: String): List[Either[ScannerError, Token]]
 
-sealed trait ScannerResult
-
-final case class ScannerSuccess(token: Token) extends ScannerResult
-case object EOF extends ScannerResult
-case object Space extends ScannerResult
-case object Comment extends ScannerResult
-case object NewLine extends ScannerResult
-
 object DefaultScanner extends Scanner:
   def scan(source: String): List[Either[ScannerError, Token]] =
     scanLoop(source, Nil)
@@ -21,6 +13,7 @@ object DefaultScanner extends Scanner:
       remainingInput: String,
       results: List[Either[ScannerError, Token]]
   ): List[Either[ScannerError, Token]] = {
+    import ScannerResult.*
 
     val firstCharacter = remainingInput.headOption
     lazy val secondCharacter = remainingInput.tail.headOption
@@ -30,7 +23,7 @@ object DefaultScanner extends Scanner:
     def singleCharacterResult(char: Char) =
       TokenType.SingleCharacter
         .fromString(char.toString)
-        .map(tokenType => ScannerSuccess(Token.SimpleToken(tokenType, 0)))
+        .map(tokenType => ValidToken(Token.SimpleToken(tokenType, 0)))
         .toRight(
           ScannerError.ParseError(
             0,
@@ -60,7 +53,7 @@ object DefaultScanner extends Scanner:
                     TwoCharacter
                       .fromString(lexeme)
                       .map(tokenType =>
-                        ScannerSuccess(Token.SimpleToken(tokenType, 0))
+                        ValidToken(Token.SimpleToken(tokenType, 0))
                       )
                       .toRight(
                         ScannerError.ParseError(
@@ -77,8 +70,12 @@ object DefaultScanner extends Scanner:
       case Right(Space) => scanLoop(remainingInput.tail, results)
       case Right(NewLine) | Right(Comment) =>
         scanLoop(remainingAfterNewLine, results)
-      case Right(ScannerSuccess(token)) =>
+      case Right(ValidToken(token)) =>
         scanLoop(remainingInput.drop(token.length), results :+ Right(token))
       case Left(err) =>
         scanLoop(remainingInput.drop(err.lexeme.length), results :+ Left(err))
   }
+
+  enum ScannerResult:
+    case ValidToken(token: Token)
+    case EOF, Space, Comment, NewLine
