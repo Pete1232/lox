@@ -31,7 +31,14 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     val hashResult = DefaultScanner.scan("#")
     expect(
       hashResult == List(
-        Left(ScannerError.ParseError(0, "", "Unexpected character parsing one character token.", "#"))
+        Left(
+          ScannerError.ParseError(
+            0,
+            "",
+            "Unexpected character parsing one character token.",
+            "#"
+          )
+        )
       )
     )
   }
@@ -40,7 +47,14 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     val hashResult = DefaultScanner.scan("!#")
     expect(
       hashResult == List(
-        Left(ScannerError.ParseError(0, "", "Unexpected character parsing two character token.", "!#"))
+        Left(
+          ScannerError.ParseError(
+            0,
+            "",
+            "Unexpected character parsing two character token.",
+            "!#"
+          )
+        )
       )
     )
   }
@@ -50,4 +64,20 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
       val commentResult = DefaultScanner.scan("//" + s)
       expect(commentResult == Nil)
     }
+  }
+
+  pureTest("ignore whitespace between tokens") {
+    import TokenType.SingleCharacter.*
+    val result = DefaultScanner.scan("\r(\t= = )\n{} ;")
+    expect(
+      result.map(_.map(_.tokenType)) == List(
+        Right(LeftParen),
+        Right(Equal),
+        Right(Equal),
+        Right(RightParen),
+        Right(LeftBrace),
+        Right(RightBrace),
+        Right(Semicolon)
+      )
+    )
   }

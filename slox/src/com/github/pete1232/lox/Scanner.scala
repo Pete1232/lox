@@ -37,8 +37,8 @@ object DefaultScanner extends Scanner:
       case None => Right(EOF)
       case Some(char) =>
         char match
-          case '\n' => Right(NewLine)
-          case ' '  => Right(Space)
+          case '\n'              => Right(NewLine)
+          case ' ' | '\r' | '\t' => Right(Space)
           case _ if TwoCharacter.entrypoints.contains(char) || char == '/' =>
             secondCharacter match
               case None => singleCharacterResult(char)
@@ -46,8 +46,8 @@ object DefaultScanner extends Scanner:
                 char2 match
                   case '\n' => // the newline will be consumed on the next pass
                     singleCharacterResult(char)
-                  case ' ' => singleCharacterResult(char)
-                  case '/' => Right(Comment)
+                  case ' ' | '\r' | '\t' => singleCharacterResult(char)
+                  case '/'               => Right(Comment)
                   case _ =>
                     val lexeme = char.toString + char2.toString
                     TwoCharacter
@@ -71,6 +71,7 @@ object DefaultScanner extends Scanner:
       case Right(NewLine) | Right(Comment) =>
         scanLoop(remainingAfterNewLine, results)
       case Right(ValidToken(token)) =>
+        // todo should enforce some kind of whitespace after a valid token
         scanLoop(remainingInput.drop(token.length), results :+ Right(token))
       case Left(err) =>
         scanLoop(remainingInput.drop(err.lexeme.length), results :+ Left(err))
