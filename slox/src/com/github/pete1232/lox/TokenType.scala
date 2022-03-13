@@ -24,11 +24,13 @@ object TokenType:
     case Greater extends SingleCharacter(">")
     case Less extends SingleCharacter("<")
 
+    final val isStartOfTwoCharacter = List("!", "=", ">", "<").contains(lexeme)
+
   object SingleCharacter:
     implicit val showSingleCharacter: Show[TokenType.SingleCharacter] =
       Show.fromToString
 
-    def fromString(s: String): Option[TokenType] =
+    def fromString(s: String): Option[TokenType.SingleCharacter] =
       SingleCharacter.values.find(_.lexeme == s)
 
   enum TwoCharacter(val lexeme: String) extends TokenType:
@@ -38,7 +40,10 @@ object TokenType:
     case LessEqual extends TwoCharacter("<=")
 
   object TwoCharacter:
-    def fromString(s: String): Option[TokenType] =
+    implicit val showTwoCharacter: Show[TokenType.TwoCharacter] =
+      Show.fromToString
+
+    def fromString(s: String): Option[TokenType.TwoCharacter] =
       TwoCharacter.values.find(_.lexeme == s)
 
   enum Literal:
@@ -64,5 +69,5 @@ object TokenType:
     case EOF extends Keyword("eof")
 
   object Keyword:
-    def fromString(s: String): Option[TokenType] =
+    def fromString(s: String): Option[TokenType.Keyword] =
       Keyword.values.find(_.lexeme == s)
