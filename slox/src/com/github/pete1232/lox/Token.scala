@@ -18,13 +18,13 @@ object Token:
     }
 
   final case class SimpleToken(
-      tokenType: TokenType,
+      tokenType: FixedTokenType,
       line: Int
   ) extends Token:
     final val length: Int = tokenType.length
 
   final case class LiteralToken(
-      tokenType: TokenType,
+      tokenType: TokenType.Literal,
       lexeme: String,
       literal: Object,
       line: Int

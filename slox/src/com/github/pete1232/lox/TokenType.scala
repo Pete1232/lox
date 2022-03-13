@@ -3,12 +3,14 @@ package com.github.pete1232.lox
 import scala.collection.View.Single
 import cats.Show
 
-sealed trait TokenType:
-  def length: Int
+sealed trait TokenType
+
+class FixedTokenType(val lexeme: String) extends TokenType:
+  final val length = lexeme.length
 
 object TokenType:
 
-  enum SingleCharacter(val lexeme: String) extends TokenType:
+  enum SingleCharacter(lexeme: String) extends FixedTokenType(lexeme):
     case LeftParen extends SingleCharacter("(")
     case RightParen extends SingleCharacter(")")
     case LeftBrace extends SingleCharacter("{")
@@ -25,10 +27,6 @@ object TokenType:
     case Greater extends SingleCharacter(">")
     case Less extends SingleCharacter("<")
 
-    final val isStartOfTwoCharacter = List("!", "=", ">", "<").contains(lexeme)
-
-    final val length = lexeme.length
-
   object SingleCharacter:
     implicit val showSingleCharacter: Show[TokenType.SingleCharacter] =
       Show.fromToString
@@ -36,13 +34,11 @@ object TokenType:
     def fromString(s: String): Option[TokenType.SingleCharacter] =
       SingleCharacter.values.find(_.lexeme == s)
 
-  enum TwoCharacter(val lexeme: String) extends TokenType:
+  enum TwoCharacter(lexeme: String) extends FixedTokenType(lexeme):
     case BangEqual extends TwoCharacter("!=")
     case EqualEqual extends TwoCharacter("==")
     case GreaterEqual extends TwoCharacter(">=")
     case LessEqual extends TwoCharacter("<=")
-
-    final val length = lexeme.length
 
   object TwoCharacter:
     implicit val showTwoCharacter: Show[TokenType.TwoCharacter] =
@@ -53,10 +49,10 @@ object TokenType:
     def fromString(s: String): Option[TokenType.TwoCharacter] =
       TwoCharacter.values.find(_.lexeme == s)
 
-  enum Literal:
+  enum Literal extends TokenType:
     case Identifier, StringLiteral, NumberLiteral
 
-  enum Keyword(val lexeme: String) extends TokenType:
+  enum Keyword(lexeme: String) extends FixedTokenType(lexeme):
     case And extends Keyword("and")
     case Class extends Keyword("class")
     case Else extends Keyword("else")
@@ -74,8 +70,6 @@ object TokenType:
     case Var extends Keyword("var")
     case While extends Keyword("while")
     case EOF extends Keyword("eof")
-
-    final val length = lexeme.length
 
   object Keyword:
     def fromString(s: String): Option[TokenType.Keyword] =
