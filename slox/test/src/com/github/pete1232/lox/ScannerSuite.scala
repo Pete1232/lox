@@ -31,7 +31,7 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     val hashResult = DefaultScanner.scan("#")
     expect(
       hashResult == List(
-        Left(ScannerError.ParseError(0, "", "Unexpected character parsing one character token."))
+        Left(ScannerError.ParseError(0, "", "Unexpected character parsing one character token.", "#"))
       )
     )
   }
@@ -40,7 +40,7 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     val hashResult = DefaultScanner.scan("!#")
     expect(
       hashResult == List(
-        Left(ScannerError.ParseError(0, "", "Unexpected character parsing two character token."))
+        Left(ScannerError.ParseError(0, "", "Unexpected character parsing two character token.", "!#"))
       )
     )
   }

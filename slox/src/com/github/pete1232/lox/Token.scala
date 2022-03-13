@@ -5,6 +5,7 @@ import cats.Show
 sealed trait Token:
   def tokenType: TokenType
   def line: Int
+  def length: Int
 
 object Token:
   implicit val showToken: Show[Token] =
@@ -19,11 +20,13 @@ object Token:
   final case class SimpleToken(
       tokenType: TokenType,
       line: Int
-  ) extends Token
+  ) extends Token:
+    final val length: Int = tokenType.length
 
   final case class LiteralToken(
       tokenType: TokenType,
       lexeme: String,
       literal: Object,
       line: Int
-  ) extends Token
+  ) extends Token:
+    final val length: Int = lexeme.length

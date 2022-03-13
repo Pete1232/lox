@@ -3,7 +3,8 @@ package com.github.pete1232.lox
 import scala.collection.View.Single
 import cats.Show
 
-sealed trait TokenType
+sealed trait TokenType:
+  def length: Int
 
 object TokenType:
 
@@ -26,6 +27,8 @@ object TokenType:
 
     final val isStartOfTwoCharacter = List("!", "=", ">", "<").contains(lexeme)
 
+    final val length = lexeme.length
+
   object SingleCharacter:
     implicit val showSingleCharacter: Show[TokenType.SingleCharacter] =
       Show.fromToString
@@ -39,9 +42,13 @@ object TokenType:
     case GreaterEqual extends TwoCharacter(">=")
     case LessEqual extends TwoCharacter("<=")
 
+    final val length = lexeme.length
+
   object TwoCharacter:
     implicit val showTwoCharacter: Show[TokenType.TwoCharacter] =
       Show.fromToString
+
+    final val entrypoints = List('!', '=', '>', '<')
 
     def fromString(s: String): Option[TokenType.TwoCharacter] =
       TwoCharacter.values.find(_.lexeme == s)
@@ -67,6 +74,8 @@ object TokenType:
     case Var extends Keyword("var")
     case While extends Keyword("while")
     case EOF extends Keyword("eof")
+
+    final val length = lexeme.length
 
   object Keyword:
     def fromString(s: String): Option[TokenType.Keyword] =
