@@ -29,4 +29,19 @@ enum ScannerError(val message: String, val lexeme: String, val lineNumber: Int)
         line,
       )
 
-  override def toString = s"${this.getClass.getSimpleName}: $message [$lexeme]"
+  case LiteralStringNotClosed(line: Int, override val lexeme: String)
+      extends ScannerError(
+        "A string literal was opened but not closed on the same line.",
+        lexeme,
+        line,
+      )
+
+  case LiteralStringBadEscape(line: Int, override val lexeme: String)
+      extends ScannerError(
+        "An invalid excape character was included in a string.",
+        lexeme,
+        line,
+      )
+
+  override def toString =
+    s"${this.getClass.getSimpleName}: $message [$lexeme] [line: $lineNumber]"

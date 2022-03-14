@@ -1,6 +1,7 @@
 package com.github.pete1232.lox
 
 import com.github.pete1232.lox.TokenType.TwoCharacter
+import com.github.pete1232.lox.Token.LiteralToken
 
 trait Scanner:
   def scan(source: String): List[Either[ScannerError, Token]]
@@ -51,12 +52,55 @@ object DefaultScanner extends Scanner:
           )
         )
 
+    // returns the lexeme, meaning the string quotes are included
+    @scala.annotation.tailrec
+    def consumeString(
+        remaining: String,
+        result: String = "",
+        isOpen: Boolean = false,
+    ): Either[ScannerError, String] =
+      remaining.headOption match
+        case None                 =>
+          Left(
+            ScannerError.LiteralStringNotClosed(
+              currentLine,
+              result,
+            )
+          )
+        case Some(c) if c == '\\' =>
+          remaining.tail.headOption match
+            case Some('"') =>
+              consumeString(remaining.tail.tail, result + c + '"', isOpen)
+            case _         => consumeString(remaining.tail, result + c, isOpen)
+        case Some(c) if c == '\n' =>
+          Left(
+            ScannerError.LiteralStringNotClosed(
+              currentLine,
+              result,
+            )
+          )
+        case Some(c) if c == '"'  =>
+          if isOpen then Right(result + c)
+          else consumeString(remaining.tail, result + c, isOpen = true)
+        case Some(c) => consumeString(remaining.tail, result + c, isOpen)
+
     val nextToken: Either[ScannerError, ScannerResult] = firstCharacter match
       case None       => Right(EOF)
       case Some(char) =>
         char match
           case '\n'              => Right(NewLine)
           case ' ' | '\r' | '\t' => Right(Space)
+          case '"'               =>
+            consumeString(remainingInput).map(stringValue =>
+              ValidToken(
+                LiteralToken(
+                  TokenType.Literal.StringLiteral,
+                  stringValue.tail.reverse.tail.reverse, // todo make this better
+                  stringValue,
+                  currentLine,
+                )
+              )
+            )
           case _ if TwoCharacter.entrypoints.contains(char) || char == '/' =>
             secondCharacter match
               case None        => singleCharacterResult(char)

@@ -29,4 +29,5 @@ object Token:
       literal: Object,
       line: Int,
   ) extends Token:
-    final val length: Int = lexeme.length
+    final val length: Int =
+      lexeme.length + 2 // add 2 to account for the string quotes

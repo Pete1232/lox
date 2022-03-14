@@ -4,6 +4,7 @@ import weaver.SimpleIOSuite
 import Token.*
 import org.scalacheck.Gen
 import weaver.scalacheck.Checkers
+import scala.util.hashing.Hashing.Default
 
 object ScannerSuite extends SimpleIOSuite with Checkers:
 
@@ -195,4 +196,78 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
       )
     )
   }
+
+  test("parse a string literal") {
+    forall(Gen.alphaStr) { str =>
+      val stringObject = "\"" + str + "\""
+      val result       = DefaultScanner.scan(stringObject)
+      expect(
+        result == List(
+          Right(
+            LiteralToken(
+              TokenType.Literal.StringLiteral,
+              str,
+              stringObject,
+              0,
+            )
+          )
+        )
+      )
+    }
+  }
+
+  pureTest("parse a string literal with an escaped quote") {
+    val stringObject = "\"" + "abc123\\\"" + "\""
+    val result       = DefaultScanner.scan(stringObject)
+    expect(
+      result == List(
+        Right(
+          LiteralToken(
+            TokenType.Literal.StringLiteral,
+            "abc123\\\"",
+            stringObject,
+            0,
+          )
+        )
+      )
+    )
+  }
+
+  pureTest("error when a string literal doesn't have a closing quote") {
+    val result = DefaultScanner.scan("\"" + "abc123")
+    expect(
+      result == List(
+        Left(
+          ScannerError.LiteralStringNotClosed(
+            0,
+            "\"abc123",
+          )
+        )
+      )
+    )
+  }
+
+  pureTest(
+    "error when a string literal doesn't have a closing quote on the same line"
+  ) {
+    val result = DefaultScanner.scan("\"" + "abc123" + "\n" + "\"")
+    println(result)
+    expect(
+      result == List(
+        Left(
+          ScannerError.LiteralStringNotClosed(
+            0,
+            "\"abc123",
+          )
+        ),
+        Left(
+          ScannerError.LiteralStringNotClosed(
+            1,
+            "\"",
+          )
+        ),
+      )
+    )
+  }
+
 end ScannerSuite
