@@ -30,10 +30,8 @@ object DefaultScanner extends Scanner:
         .fromString(char.toString)
         .map(tokenType => ValidToken(Token.SimpleToken(tokenType, currentLine)))
         .toRight(
-          ScannerError.ParseError(
+          ScannerError.InvalidFirstCharacter(
             currentLine,
-            "",
-            "Unexpected character parsing one character token.",
             charactersToWhitespace
           )
         )
@@ -47,10 +45,8 @@ object DefaultScanner extends Scanner:
           )
         )
         .toRight(
-          ScannerError.ParseError(
+          ScannerError.InvalidSecondCharacter(
             currentLine,
-            "",
-            "Unexpected character parsing two character token.",
             charactersToWhitespace
           )
         )
@@ -78,10 +74,8 @@ object DefaultScanner extends Scanner:
                           if !WhitespaceCharacters.contains(char3) =>
                         result.flatMap { _ =>
                           Left(
-                            ScannerError.ParseError(
+                            ScannerError.ValidTwoCharacterNoWhitespace(
                               currentLine,
-                              "",
-                              "No whitespace after two character token.",
                               charactersToWhitespace
                             )
                           )
@@ -94,10 +88,8 @@ object DefaultScanner extends Scanner:
               case Some(char2) if !WhitespaceCharacters.contains(char2) =>
                 result.flatMap { _ =>
                   Left(
-                    ScannerError.ParseError(
+                    ScannerError.ValidOneCharacterNoWhitespace(
                       currentLine,
-                      "",
-                      "No whitespace after single character token.",
                       charactersToWhitespace
                     )
                   )

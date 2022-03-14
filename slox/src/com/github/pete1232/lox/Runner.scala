@@ -53,7 +53,6 @@ final case class Runner(scanner: Scanner)(implicit console: Console[IO]):
 
     val scanner: PartialFunction[Throwable, IO[ExitCode]] = {
       case scan: ScannerError =>
-        scan match
-          case ScannerError.ParseError(line, where, message, _) =>
-            IO.println(s"[line $line] Error$where: $message").as(ExitCode(65))
+        import scan._
+        IO.println(s"[line $lineNumber] Error: $message").as(ExitCode(65))
     }

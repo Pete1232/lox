@@ -32,10 +32,8 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     expect(
       hashResult == List(
         Left(
-          ScannerError.ParseError(
+          ScannerError.InvalidFirstCharacter(
             0,
-            "",
-            "Unexpected character parsing one character token.",
             "#"
           )
         )
@@ -48,10 +46,8 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     expect(
       hashResult == List(
         Left(
-          ScannerError.ParseError(
+          ScannerError.InvalidSecondCharacter(
             0,
-            "",
-            "Unexpected character parsing two character token.",
             "!#"
           )
         )
@@ -92,10 +88,8 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
         Right(SimpleToken(Slash, 2)),
         Right(SimpleToken(Minus, 3)),
         Left(
-          ScannerError.ParseError(
+          ScannerError.InvalidFirstCharacter(
             3,
-            "",
-            "Unexpected character parsing one character token.",
             "#"
           )
         )
@@ -109,42 +103,32 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     expect(
       result == List(
         Left(
-          ScannerError.ParseError(
+          ScannerError.InvalidFirstCharacter(
             0,
-            "",
-            "Unexpected character parsing one character token.",
             "t"
           )
         ),
         Left(
-          ScannerError.ParseError(
+          ScannerError.InvalidFirstCharacter(
             0,
-            "",
-            "Unexpected character parsing one character token.",
             "te"
           )
         ),
         Left(
-          ScannerError.ParseError(
+          ScannerError.InvalidFirstCharacter(
             0,
-            "",
-            "Unexpected character parsing one character token.",
             "tes"
           )
         ),
         Left(
-          ScannerError.ParseError(
+          ScannerError.InvalidFirstCharacter(
             1,
-            "",
-            "Unexpected character parsing one character token.",
             "test"
           )
         ),
         Left(
-          ScannerError.ParseError(
+          ScannerError.InvalidFirstCharacter(
             1,
-            "",
-            "Unexpected character parsing one character token.",
             "test!"
           )
         )
@@ -161,34 +145,26 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     expect(
       result == List(
         Left(
-          ScannerError.ParseError(
+          ScannerError.ValidOneCharacterNoWhitespace(
             0,
-            "",
-            "No whitespace after single character token.",
             "*/"
           )
         ),
         Left(
-          ScannerError.ParseError(
+          ScannerError.ValidOneCharacterNoWhitespace(
             0,
-            "",
-            "No whitespace after single character token.",
             "+%"
           )
         ),
         Left(
-          ScannerError.ParseError(
+          ScannerError.InvalidSecondCharacter(
             0,
-            "",
-            "Unexpected character parsing two character token.",
             "/*-"
           )
         ),
         Left(
-          ScannerError.ParseError(
+          ScannerError.InvalidSecondCharacter(
             0,
-            "",
-            "Unexpected character parsing two character token.",
             "!£"
           )
         )
@@ -205,18 +181,14 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     expect(
       result == List(
         Left(
-          ScannerError.ParseError(
+          ScannerError.ValidTwoCharacterNoWhitespace(
             0,
-            "",
-            "No whitespace after two character token.",
             "==*"
           )
         ),
         Left(
-          ScannerError.ParseError(
+          ScannerError.ValidTwoCharacterNoWhitespace(
             0,
-            "",
-            "No whitespace after two character token.",
             "==^;&"
           )
         )
