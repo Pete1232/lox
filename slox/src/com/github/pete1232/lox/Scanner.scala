@@ -95,7 +95,7 @@ object DefaultScanner extends Scanner:
               ValidToken(
                 LiteralToken(
                   TokenType.Literal.StringLiteral,
-                  stringValue.tail.reverse.tail.reverse, // todo make this better
+                  stringValue.substring(1, stringValue.length - 1),
                   stringValue,
                   currentLine,
                 )
