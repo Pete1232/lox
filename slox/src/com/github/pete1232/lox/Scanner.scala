@@ -1,7 +1,7 @@
 package com.github.pete1232.lox
 
 import com.github.pete1232.lox.TokenType.TwoCharacter
-import com.github.pete1232.lox.Token.LiteralToken
+import com.github.pete1232.lox.Token.LiteralString
 
 trait Scanner:
   def scan(source: String): List[Either[ScannerError, Token]]
@@ -84,6 +84,23 @@ object DefaultScanner extends Scanner:
           else consumeString(remaining.tail, result + c, isOpen = true)
         case Some(c) => consumeString(remaining.tail, result + c, isOpen)
 
+    @scala.annotation.tailrec
+    def consumeDigits(
+        remaining: String,
+        result: String = "",
+        hasDecimalPoint: Boolean = false,
+    ): Either[ScannerError, String] =
+      remaining.headOption match
+        case None                                        => Right(result)
+        case Some(c) if WhitespaceCharacters.contains(c) => Right(result)
+        case Some(c)                                     =>
+          if c.isDigit then
+            consumeDigits(remaining.tail, result + c, hasDecimalPoint)
+          else
+            Left(
+              ScannerError.LiteralNumberBadCharacter(currentLine, result + c)
+            )
+
     val nextToken: Either[ScannerError, ScannerResult] = firstCharacter match
       case None       => Right(EOF)
       case Some(char) =>
@@ -93,8 +110,7 @@ object DefaultScanner extends Scanner:
           case '"'               =>
             consumeString(remainingInput).map(stringValue =>
               ValidToken(
-                LiteralToken(
-                  TokenType.Literal.StringLiteral,
+                LiteralString(
                   stringValue,
                   StringContext.processEscapes(
                     stringValue.substring(1, stringValue.length - 1)
@@ -127,8 +143,17 @@ object DefaultScanner extends Scanner:
                           )
                         }
                       case _ => result
-
-          case _ =>
+          case _ if char.isDigit                                           =>
+            consumeDigits(remainingInput).map(lexeme =>
+              ScannerResult.ValidToken(
+                Token.LiteralNumber(
+                  lexeme,
+                  lexeme.toDouble,
+                  currentLine,
+                )
+              )
+            )
+          case _                                                           =>
             val result = singleCharacterResult(char)
             secondCharacter match
               case Some(char2) if !WhitespaceCharacters.contains(char2) =>

@@ -36,9 +36,9 @@ enum ScannerError(val message: String, val lexeme: String, val lineNumber: Int)
         line,
       )
 
-  case LiteralStringBadEscape(line: Int, override val lexeme: String)
+  case LiteralNumberBadCharacter(line: Int, override val lexeme: String)
       extends ScannerError(
-        "An invalid excape character was included in a string.",
+        "A non-digit character was found in a numeric literal.",
         lexeme,
         line,
       )

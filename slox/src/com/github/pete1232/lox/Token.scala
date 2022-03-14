@@ -11,10 +11,12 @@ object Token:
   implicit val showToken: Show[Token] =
     Show.show { t =>
       t match
-        case SimpleToken(tokenType, line)                   =>
+        case SimpleToken(tokenType, line)         =>
           s"[$line] $tokenType"
-        case LiteralToken(tokenType, lexeme, literal, line) =>
-          s"[$line] $tokenType, $lexeme, $literal"
+        case LiteralString(lexeme, literal, line) =>
+          s"[$line] $lexeme, $literal"
+        case LiteralNumber(lexeme, literal, line) =>
+          s"[$line] $lexeme, $literal"
     }
 
   final case class SimpleToken(
@@ -23,11 +25,19 @@ object Token:
   ) extends Token:
     final val length: Int = tokenType.length
 
-  final case class LiteralToken(
-      tokenType: TokenType.Literal,
+  final case class LiteralString(
       lexeme: String,
-      literal: Object,
+      literal: String,
       line: Int,
   ) extends Token:
-    final val length: Int =
-      lexeme.length + 2 // add 2 to account for the string quotes
+    final val tokenType   = TokenType.Literal.StringLiteral
+    final val length: Int = lexeme.length
+
+  final case class LiteralNumber(
+      lexeme: String,
+      literal: Double,
+      line: Int,
+  ) extends Token:
+    final val tokenType = TokenType.Literal.NumberLiteral
+
+    final val length: Int = lexeme.length

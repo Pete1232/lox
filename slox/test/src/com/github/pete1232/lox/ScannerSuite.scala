@@ -204,8 +204,7 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
       expect(
         result == List(
           Right(
-            LiteralToken(
-              TokenType.Literal.StringLiteral,
+            LiteralString(
               inputString,
               str,
               0,
@@ -222,8 +221,7 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     expect(
       result == List(
         Right(
-          LiteralToken(
-            TokenType.Literal.StringLiteral,
+          LiteralString(
             inputString,
             "abc123\"",
             0,
@@ -266,6 +264,44 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
             "\"",
           )
         ),
+      )
+    )
+  }
+
+  test("parse a valid positive long as a numeric literal") {
+    forall(Gen.posNum[Long]) { num =>
+      val result = DefaultScanner.scan(num.toString + " \"another token\"")
+      expect(
+        result == List(
+          Right(
+            LiteralNumber(
+              num.toString,
+              num,
+              0,
+            )
+          ),
+          Right(
+            LiteralString(
+              "\"another token\"",
+              "another token",
+              0,
+            )
+          ),
+        )
+      )
+    }
+  }
+
+  pureTest("error when a numeric isn't closed properly by a space") {
+    val result = DefaultScanner.scan("123a")
+    expect(
+      result == List(
+        Left(
+          ScannerError.LiteralNumberBadCharacter(
+            0,
+            "123a",
+          )
+        )
       )
     )
   }
