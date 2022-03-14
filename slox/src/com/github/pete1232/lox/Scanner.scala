@@ -94,7 +94,7 @@ object DefaultScanner extends Scanner:
         case None                                        => Right(result)
         case Some(c) if WhitespaceCharacters.contains(c) => Right(result)
         case Some(c)                                     =>
-          if c.isDigit then
+          if c >= '0' && c <= '9' then
             consumeDigits(remaining.tail, result + c, hasDecimalPoint)
           else
             Left(
