@@ -199,15 +199,15 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
 
   test("parse a string literal") {
     forall(Gen.alphaStr) { str =>
-      val stringObject = "\"" + str + "\""
-      val result       = DefaultScanner.scan(stringObject)
+      val inputString = "\"" + str + "\""
+      val result      = DefaultScanner.scan(inputString)
       expect(
         result == List(
           Right(
             LiteralToken(
               TokenType.Literal.StringLiteral,
+              inputString,
               str,
-              stringObject,
               0,
             )
           )
@@ -217,15 +217,15 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
   }
 
   pureTest("parse a string literal with an escaped quote") {
-    val stringObject = "\"" + "abc123\\\"" + "\""
-    val result       = DefaultScanner.scan(stringObject)
+    val inputString = "\"" + "abc123\\\"" + "\""
+    val result      = DefaultScanner.scan(inputString)
     expect(
       result == List(
         Right(
           LiteralToken(
             TokenType.Literal.StringLiteral,
-            "abc123\\\"",
-            stringObject,
+            inputString,
+            "abc123\"",
             0,
           )
         )

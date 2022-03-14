@@ -95,8 +95,10 @@ object DefaultScanner extends Scanner:
               ValidToken(
                 LiteralToken(
                   TokenType.Literal.StringLiteral,
-                  stringValue.substring(1, stringValue.length - 1),
                   stringValue,
+                  StringContext.processEscapes(
+                    stringValue.substring(1, stringValue.length - 1)
+                  ),
                   currentLine,
                 )
               )
