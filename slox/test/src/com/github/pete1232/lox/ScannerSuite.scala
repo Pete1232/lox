@@ -68,7 +68,7 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
 
   pureTest("ignore whitespace between tokens") {
     import TokenType.SingleCharacter.*
-    val result = DefaultScanner.scan("\r(\t= = )\n{} ;")
+    val result = DefaultScanner.scan("\r(\t= = )\n{ } ;")
     expect(
       result.map(_.map(_.tokenType)) == List(
         Right(LeftParen),
@@ -97,6 +97,127 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
             "",
             "Unexpected character parsing one character token.",
             "#"
+          )
+        )
+      )
+    )
+  }
+
+  pureTest("error if the token does not exist") {
+    val result = DefaultScanner.scan("t te\ttes\ntest\rtest!")
+
+    expect(
+      result == List(
+        Left(
+          ScannerError.ParseError(
+            0,
+            "",
+            "Unexpected character parsing one character token.",
+            "t"
+          )
+        ),
+        Left(
+          ScannerError.ParseError(
+            0,
+            "",
+            "Unexpected character parsing one character token.",
+            "te"
+          )
+        ),
+        Left(
+          ScannerError.ParseError(
+            0,
+            "",
+            "Unexpected character parsing one character token.",
+            "tes"
+          )
+        ),
+        Left(
+          ScannerError.ParseError(
+            1,
+            "",
+            "Unexpected character parsing one character token.",
+            "test"
+          )
+        ),
+        Left(
+          ScannerError.ParseError(
+            1,
+            "",
+            "Unexpected character parsing one character token.",
+            "test!"
+          )
+        )
+      )
+    )
+  }
+
+  pureTest("error if no space is left between valid single character tokens") {
+    import TokenType.SingleCharacter.*
+    import TokenType.TwoCharacter.*
+
+    val result = DefaultScanner.scan("*/ +% /*- !£")
+
+    expect(
+      result == List(
+        Left(
+          ScannerError.ParseError(
+            0,
+            "",
+            "No whitespace after single character token.",
+            "*/"
+          )
+        ),
+        Left(
+          ScannerError.ParseError(
+            0,
+            "",
+            "No whitespace after single character token.",
+            "+%"
+          )
+        ),
+        Left(
+          ScannerError.ParseError(
+            0,
+            "",
+            "Unexpected character parsing two character token.",
+            "/*-"
+          )
+        ),
+        Left(
+          ScannerError.ParseError(
+            0,
+            "",
+            "Unexpected character parsing two character token.",
+            "!£"
+          )
+        )
+      )
+    )
+  }
+
+  pureTest("error if no space is left between valid two character tokens") {
+    import TokenType.SingleCharacter.*
+    import TokenType.TwoCharacter.*
+
+    val result = DefaultScanner.scan("==* ==^;&")
+
+    expect(
+      result == List(
+        Left(
+          ScannerError.ParseError(
+            0,
+            "",
+            "No whitespace after two character token.",
+            "==*"
+          )
+        ),
+        Left(
+          ScannerError.ParseError(
+            0,
+            "",
+            "No whitespace after two character token.",
+            "==^;&"
           )
         )
       )

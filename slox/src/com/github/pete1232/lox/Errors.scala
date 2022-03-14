@@ -10,4 +10,4 @@ enum ScannerError(message: String, val lexeme: String) extends Throwable:
       override val lexeme: String
   ) extends ScannerError(message, lexeme)
 
-  override def toString = s"${this.getClass} $message $lexeme"
+  override def toString = s"${this.getClass.getSimpleName}: $message [$lexeme]"

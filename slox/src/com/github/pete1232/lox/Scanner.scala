@@ -9,6 +9,8 @@ object DefaultScanner extends Scanner:
   def scan(source: String): List[Either[ScannerError, Token]] =
     scanLoop(source, 0, Nil)
 
+  final val WhitespaceCharacters = List(' ', '\t', '\r', '\n')
+
   private def scanLoop(
       remainingInput: String,
       currentLine: Int,
@@ -18,6 +20,9 @@ object DefaultScanner extends Scanner:
 
     val firstCharacter = remainingInput.headOption
     lazy val secondCharacter = remainingInput.tail.headOption
+    lazy val thirdCharacter = remainingInput.tail.tail.headOption
+    lazy val charactersToWhitespace =
+      remainingInput.takeWhile(c => !WhitespaceCharacters.contains(c))
     lazy val remainingAfterNewLine = remainingInput.dropWhile(_ != '\n').tail
 
     def singleCharacterResult(char: Char) =
@@ -29,7 +34,7 @@ object DefaultScanner extends Scanner:
             currentLine,
             "",
             "Unexpected character parsing one character token.",
-            char.toString
+            charactersToWhitespace
           )
         )
 
@@ -49,21 +54,87 @@ object DefaultScanner extends Scanner:
                   case ' ' | '\r' | '\t' => singleCharacterResult(char)
                   case '/'               => Right(Comment)
                   case _ =>
-                    val lexeme = char.toString + char2.toString
-                    TwoCharacter
-                      .fromString(lexeme)
-                      .map(tokenType =>
-                        ValidToken(Token.SimpleToken(tokenType, currentLine))
-                      )
-                      .toRight(
-                        ScannerError.ParseError(
-                          currentLine,
-                          "",
-                          "Unexpected character parsing two character token.",
-                          lexeme
-                        )
-                      )
-          case _ => singleCharacterResult(char)
+                    thirdCharacter match
+                      case None =>
+                        val lexeme = char.toString + char2.toString
+                        TwoCharacter
+                          .fromString(lexeme)
+                          .map(tokenType =>
+                            ValidToken(
+                              Token.SimpleToken(tokenType, currentLine)
+                            )
+                          )
+                          .toRight(
+                            ScannerError.ParseError(
+                              currentLine,
+                              "",
+                              "Unexpected character parsing two character token.",
+                              charactersToWhitespace
+                            )
+                          )
+                      case Some(c3) if WhitespaceCharacters.contains(c3) =>
+                        // whitespace will be consumed on the next pass
+                        val lexeme = char.toString + char2.toString
+                        TwoCharacter
+                          .fromString(lexeme)
+                          .map(tokenType =>
+                            ValidToken(
+                              Token.SimpleToken(tokenType, currentLine)
+                            )
+                          )
+                          .toRight(
+                            ScannerError.ParseError(
+                              currentLine,
+                              "",
+                              "Unexpected character parsing two character token.",
+                              charactersToWhitespace
+                            )
+                          )
+                      case Some(_) =>
+                        val lexeme = char.toString + char2.toString
+                        TwoCharacter
+                          .fromString(lexeme)
+                          .map(tokenType =>
+                            ValidToken(
+                              Token.SimpleToken(tokenType, currentLine)
+                            )
+                          )
+                          .toRight(
+                            ScannerError.ParseError(
+                              currentLine,
+                              "",
+                              "Unexpected character parsing two character token.",
+                              charactersToWhitespace
+                            )
+                          )
+                          .flatMap { _ =>
+                            Left(
+                              ScannerError.ParseError(
+                                currentLine,
+                                "",
+                                "No whitespace after two character token.",
+                                charactersToWhitespace
+                              )
+                            )
+                          }
+
+          case _ =>
+            secondCharacter match
+              case None => singleCharacterResult(char)
+              case Some(c) if WhitespaceCharacters.contains(c) =>
+                // whitespace will be consumed on the next pass
+                singleCharacterResult(char)
+              case Some(_) =>
+                singleCharacterResult(char).flatMap { _ =>
+                  Left(
+                    ScannerError.ParseError(
+                      currentLine,
+                      "",
+                      "No whitespace after single character token.",
+                      charactersToWhitespace
+                    )
+                  )
+                }
 
     nextToken match
       case Right(EOF)   => results
@@ -71,7 +142,6 @@ object DefaultScanner extends Scanner:
       case Right(NewLine) | Right(Comment) =>
         scanLoop(remainingAfterNewLine, currentLine + 1, results)
       case Right(ValidToken(token)) =>
-        // todo should enforce some kind of whitespace after a valid token
         scanLoop(
           remainingInput.drop(token.length),
           currentLine,
