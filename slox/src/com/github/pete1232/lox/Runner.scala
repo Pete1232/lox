@@ -25,9 +25,9 @@ final case class Runner(scanner: Scanner)(implicit console: Console[IO]):
 
   private def runPrompt(): IO[ExitCode] =
     (for
-      _ <- console.print("> ")
-      l <- console.readLine
-      _ <- runScan(l)
+      _      <- console.print("> ")
+      l      <- console.readLine
+      _      <- runScan(l)
       result <- runPrompt()
     yield result).recoverWith(ErrorHandler.repl)
 
@@ -53,6 +53,6 @@ final case class Runner(scanner: Scanner)(implicit console: Console[IO]):
 
     val scanner: PartialFunction[Throwable, IO[ExitCode]] = {
       case scan: ScannerError =>
-        import scan._
+        import scan.*
         IO.println(s"[line $lineNumber] Error: $message").as(ExitCode(65))
     }

@@ -11,7 +11,7 @@ object Token:
   implicit val showToken: Show[Token] =
     Show.show { t =>
       t match
-        case SimpleToken(tokenType, line) =>
+        case SimpleToken(tokenType, line)                   =>
           s"[$line] $tokenType"
         case LiteralToken(tokenType, lexeme, literal, line) =>
           s"[$line] $tokenType, $lexeme, $literal"
@@ -19,7 +19,7 @@ object Token:
 
   final case class SimpleToken(
       tokenType: FixedTokenType,
-      line: Int
+      line: Int,
   ) extends Token:
     final val length: Int = tokenType.length
 
@@ -27,6 +27,6 @@ object Token:
       tokenType: TokenType.Literal,
       lexeme: String,
       literal: Object,
-      line: Int
+      line: Int,
   ) extends Token:
     final val length: Int = lexeme.length

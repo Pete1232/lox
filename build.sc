@@ -11,7 +11,7 @@ object slox extends ScalaModule with ScalafmtModule {
     "-Xfatal-warnings"
   )
 
-  object test extends Tests {
+  object test extends Tests with ScalafmtModule {
     def ivyDeps = Agg(
       ivy"com.disneystreaming::weaver-cats:0.7.11",
       ivy"com.disneystreaming::weaver-scalacheck:0.7.11"

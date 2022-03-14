@@ -14,16 +14,16 @@ object DefaultScanner extends Scanner:
   private def scanLoop(
       remainingInput: String,
       currentLine: Int,
-      results: List[Either[ScannerError, Token]]
-  ): List[Either[ScannerError, Token]] = {
+      results: List[Either[ScannerError, Token]],
+  ): List[Either[ScannerError, Token]] =
     import ScannerResult.*
 
-    val firstCharacter = remainingInput.headOption
-    lazy val secondCharacter = remainingInput.tail.headOption
-    lazy val thirdCharacter = remainingInput.tail.tail.headOption
+    val firstCharacter              = remainingInput.headOption
+    lazy val secondCharacter        = remainingInput.tail.headOption
+    lazy val thirdCharacter         = remainingInput.tail.tail.headOption
     lazy val charactersToWhitespace =
       remainingInput.takeWhile(c => !WhitespaceCharacters.contains(c))
-    lazy val remainingAfterNewLine = remainingInput.dropWhile(_ != '\n').tail
+    lazy val remainingAfterNewLine  = remainingInput.dropWhile(_ != '\n').tail
 
     def singleCharacterResult(char: Char) =
       TokenType.SingleCharacter
@@ -32,7 +32,7 @@ object DefaultScanner extends Scanner:
         .toRight(
           ScannerError.InvalidFirstCharacter(
             currentLine,
-            charactersToWhitespace
+            charactersToWhitespace,
           )
         )
 
@@ -47,25 +47,25 @@ object DefaultScanner extends Scanner:
         .toRight(
           ScannerError.InvalidSecondCharacter(
             currentLine,
-            charactersToWhitespace
+            charactersToWhitespace,
           )
         )
 
     val nextToken: Either[ScannerError, ScannerResult] = firstCharacter match
-      case None => Right(EOF)
+      case None       => Right(EOF)
       case Some(char) =>
         char match
           case '\n'              => Right(NewLine)
           case ' ' | '\r' | '\t' => Right(Space)
           case _ if TwoCharacter.entrypoints.contains(char) || char == '/' =>
             secondCharacter match
-              case None => singleCharacterResult(char)
+              case None        => singleCharacterResult(char)
               case Some(char2) =>
                 char2 match
                   case c if WhitespaceCharacters.contains(c) =>
                     singleCharacterResult(char)
-                  case '/' => Right(Comment)
-                  case _ =>
+                  case '/'                                   => Right(Comment)
+                  case _                                     =>
                     val result = twoCharacterResult(
                       char.toString + char2.toString
                     )
@@ -76,7 +76,7 @@ object DefaultScanner extends Scanner:
                           Left(
                             ScannerError.ValidTwoCharacterNoWhitespace(
                               currentLine,
-                              charactersToWhitespace
+                              charactersToWhitespace,
                             )
                           )
                         }
@@ -90,7 +90,7 @@ object DefaultScanner extends Scanner:
                   Left(
                     ScannerError.ValidOneCharacterNoWhitespace(
                       currentLine,
-                      charactersToWhitespace
+                      charactersToWhitespace,
                     )
                   )
                 }
@@ -101,20 +101,21 @@ object DefaultScanner extends Scanner:
       case Right(Space) => scanLoop(remainingInput.tail, currentLine, results)
       case Right(NewLine) | Right(Comment) =>
         scanLoop(remainingAfterNewLine, currentLine + 1, results)
-      case Right(ValidToken(token)) =>
+      case Right(ValidToken(token))        =>
         scanLoop(
           remainingInput.drop(token.length),
           currentLine,
-          results :+ Right(token)
+          results :+ Right(token),
         )
-      case Left(err) =>
+      case Left(err)                       =>
         scanLoop(
           remainingInput.drop(err.lexeme.length),
           currentLine,
-          results :+ Left(err)
+          results :+ Left(err),
         )
-  }
+  end scanLoop
 
   enum ScannerResult:
     case ValidToken(token: Token)
     case EOF, Space, Comment, NewLine
+end DefaultScanner

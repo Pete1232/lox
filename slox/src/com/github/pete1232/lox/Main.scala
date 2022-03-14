@@ -11,7 +11,7 @@ import java.nio.file.{Files, NoSuchFileException, Path}
 object Main extends IOApp:
 
   val scanner = DefaultScanner
-  val runner = Runner(scanner)
+  val runner  = Runner(scanner)
 
   final def run(args: List[String]): IO[ExitCode] =
     runner.run(args)

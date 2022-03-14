@@ -30,10 +30,10 @@ object RunnerSuite extends SimpleIOSuite:
   }
 
   case class FakeConsole(in: IO[String]) extends Console[IO]:
-    def error[A](a: A)(implicit S: Show[A]): IO[Unit] = IO.unit
-    def errorln[A](a: A)(implicit S: Show[A]): IO[Unit] = IO.unit
-    def print[A](a: A)(implicit S: Show[A]): IO[Unit] = IO.unit
-    def println[A](a: A)(implicit S: Show[A]): IO[Unit] = IO.unit
+    def error[A](a: A)(implicit S: Show[A]): IO[Unit]     = IO.unit
+    def errorln[A](a: A)(implicit S: Show[A]): IO[Unit]   = IO.unit
+    def print[A](a: A)(implicit S: Show[A]): IO[Unit]     = IO.unit
+    def println[A](a: A)(implicit S: Show[A]): IO[Unit]   = IO.unit
     def readLineWithCharset(charset: Charset): IO[String] = in
 
   def runnerWithFakeConsole(in: IO[String]) =

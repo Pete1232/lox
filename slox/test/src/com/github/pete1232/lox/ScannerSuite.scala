@@ -34,7 +34,7 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
         Left(
           ScannerError.InvalidFirstCharacter(
             0,
-            "#"
+            "#",
           )
         )
       )
@@ -48,7 +48,7 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
         Left(
           ScannerError.InvalidSecondCharacter(
             0,
-            "!#"
+            "!#",
           )
         )
       )
@@ -73,7 +73,7 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
         Right(RightParen),
         Right(LeftBrace),
         Right(RightBrace),
-        Right(Semicolon)
+        Right(Semicolon),
       )
     )
   }
@@ -90,9 +90,9 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
         Left(
           ScannerError.InvalidFirstCharacter(
             3,
-            "#"
+            "#",
           )
-        )
+        ),
       )
     )
   }
@@ -105,33 +105,33 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
         Left(
           ScannerError.InvalidFirstCharacter(
             0,
-            "t"
+            "t",
           )
         ),
         Left(
           ScannerError.InvalidFirstCharacter(
             0,
-            "te"
+            "te",
           )
         ),
         Left(
           ScannerError.InvalidFirstCharacter(
             0,
-            "tes"
+            "tes",
           )
         ),
         Left(
           ScannerError.InvalidFirstCharacter(
             1,
-            "test"
+            "test",
           )
         ),
         Left(
           ScannerError.InvalidFirstCharacter(
             1,
-            "test!"
+            "test!",
           )
-        )
+        ),
       )
     )
   }
@@ -147,27 +147,27 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
         Left(
           ScannerError.ValidOneCharacterNoWhitespace(
             0,
-            "*/"
+            "*/",
           )
         ),
         Left(
           ScannerError.ValidOneCharacterNoWhitespace(
             0,
-            "+%"
+            "+%",
           )
         ),
         Left(
           ScannerError.InvalidSecondCharacter(
             0,
-            "/*-"
+            "/*-",
           )
         ),
         Left(
           ScannerError.InvalidSecondCharacter(
             0,
-            "!£"
+            "!£",
           )
-        )
+        ),
       )
     )
   }
@@ -183,15 +183,16 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
         Left(
           ScannerError.ValidTwoCharacterNoWhitespace(
             0,
-            "==*"
+            "==*",
           )
         ),
         Left(
           ScannerError.ValidTwoCharacterNoWhitespace(
             0,
-            "==^;&"
+            "==^;&",
           )
-        )
+        ),
       )
     )
   }
+end ScannerSuite
