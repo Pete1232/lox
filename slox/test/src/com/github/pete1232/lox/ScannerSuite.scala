@@ -249,7 +249,6 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     "error when a string literal doesn't have a closing quote on the same line"
   ) {
     val result = DefaultScanner.scan("\"" + "abc123" + "\n" + "\"")
-    println(result)
     expect(
       result == List(
         Left(
@@ -285,6 +284,30 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
               "\"another token\"",
               "another token",
               0,
+            )
+          ),
+        )
+      )
+    }
+  }
+
+  test("parse a valid positive double as a numeric literal") {
+    forall(Gen.posNum[Double]) { num =>
+      val result = DefaultScanner.scan(num.toString + "\n\"another token\"")
+      expect(
+        result == List(
+          Right(
+            LiteralNumber(
+              num.toString,
+              num,
+              0,
+            )
+          ),
+          Right(
+            LiteralString(
+              "\"another token\"",
+              "another token",
+              1,
             )
           ),
         )

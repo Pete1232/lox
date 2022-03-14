@@ -43,5 +43,13 @@ enum ScannerError(val message: String, val lexeme: String, val lineNumber: Int)
         line,
       )
 
+  case LiteralNumberTwoPoints(line: Int, override val lexeme: String)
+      extends ScannerError(
+        "Found two decimal points in the same numeric literal",
+        lexeme,
+        line,
+      )
+
   override def toString =
     s"${this.getClass.getSimpleName}: $message [$lexeme] [line: $lineNumber]"
+end ScannerError

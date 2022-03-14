@@ -12,6 +12,7 @@ object DefaultScanner extends Scanner:
 
   final val WhitespaceCharacters = List(' ', '\t', '\r', '\n')
 
+  @scala.annotation.tailrec
   private def scanLoop(
       remainingInput: String,
       currentLine: Int,
@@ -93,6 +94,15 @@ object DefaultScanner extends Scanner:
       remaining.headOption match
         case None                                        => Right(result)
         case Some(c) if WhitespaceCharacters.contains(c) => Right(result)
+        case Some(c) if c == '.'                         =>
+          if (hasDecimalPoint) then
+            Left(
+              ScannerError.LiteralNumberTwoPoints(
+                currentLine,
+                result + c,
+              )
+            )
+          else consumeDigits(remaining.tail, result + c, true)
         case Some(c)                                     =>
           if c >= '0' && c <= '9' then
             consumeDigits(remaining.tail, result + c, hasDecimalPoint)
