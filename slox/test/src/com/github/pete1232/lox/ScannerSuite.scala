@@ -102,7 +102,7 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     import TokenType.SingleCharacter.*
     import TokenType.TwoCharacter.*
 
-    val result = DefaultScanner.scan("*/ +% /*- !£")
+    val result = DefaultScanner.scan("*/ +% /@- !£")
 
     expect(
       result == List(
@@ -121,7 +121,7 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
         Left(
           ScannerError.InvalidSecondCharacter(
             0,
-            "/*-",
+            "/@-",
           )
         ),
         Left(
@@ -440,6 +440,41 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
             "var~if",
           )
         ),
+      )
+    )
+  }
+
+  pureTest("allow single-line comments with /**/ syntax") {
+    val result = DefaultScanner.scan("var a = /*a single line comment*/ 1")
+
+    expect(
+      result == List(
+        Right(
+          SimpleToken(TokenType.Keyword.Var, 0)
+        ),
+        Right(
+          LiteralIdentifier("a", 0)
+        ),
+        Right(SimpleToken(TokenType.SingleCharacter.Equal, 0)),
+        Right(LiteralNumber("1", 1, 0)),
+      )
+    )
+  }
+
+  pureTest("allow multi-line comments") {
+    val result = DefaultScanner.scan(
+      "var a = /*a \n multi \n line\n comment*/ 1"
+    )
+    expect(
+      result == List(
+        Right(
+          SimpleToken(TokenType.Keyword.Var, 0)
+        ),
+        Right(
+          LiteralIdentifier("a", 0)
+        ),
+        Right(SimpleToken(TokenType.SingleCharacter.Equal, 0)),
+        Right(LiteralNumber("1", 1, 3)),
       )
     )
   }

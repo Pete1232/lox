@@ -177,6 +177,16 @@ object DefaultScanner extends Scanner:
                   case c if c.isWhitespace =>
                     singleCharacterResult(char)
                   case '/'                 => Right(Comment)
+                  case '*'                 =>
+                    val fullComment  = remainingInput.tail.takeWhile(_ != '/')
+                    val newLineCount = fullComment.count(_ == '\n')
+                    // todo find the end properly
+                    Right(
+                      MultiLineComment(
+                        length = fullComment.length + 2,
+                        lines = newLineCount,
+                      )
+                    )
                   case _                   =>
                     val result = twoCharacterResult(
                       char.toString + char2.toString
@@ -219,15 +229,17 @@ object DefaultScanner extends Scanner:
     nextToken match
       case Right(EOF)   => results
       case Right(Space) => scanLoop(remainingInput.tail, currentLine, results)
-      case Right(NewLine) | Right(Comment) =>
+      case Right(NewLine) | Right(Comment)        =>
         scanLoop(remainingAfterNewLine, currentLine + 1, results)
-      case Right(ValidToken(token))        =>
+      case Right(MultiLineComment(length, lines)) =>
+        scanLoop(remainingInput.drop(length), currentLine + lines, results)
+      case Right(ValidToken(token))               =>
         scanLoop(
           remainingInput.drop(token.length),
           currentLine,
           results :+ Right(token),
         )
-      case Left(err)                       =>
+      case Left(err)                              =>
         scanLoop(
           remainingInput.drop(err.lexeme.length),
           currentLine,
@@ -237,5 +249,6 @@ object DefaultScanner extends Scanner:
 
   enum ScannerResult:
     case ValidToken(token: Token)
+    case MultiLineComment(length: Int, lines: Int)
     case EOF, Space, Comment, NewLine
 end DefaultScanner
