@@ -156,10 +156,17 @@ object DefaultScanner extends Scanner:
           case _ if char.isAlpha =>
             consumeIdentifier(remainingInput).map(stringValue =>
               ValidToken(
-                LiteralIdentifier(
-                  stringValue,
-                  currentLine,
-                )
+                TokenType.Keyword.fromString(stringValue) match
+                  case None          =>
+                    LiteralIdentifier(
+                      stringValue,
+                      currentLine,
+                    )
+                  case Some(keyword) =>
+                    Token.SimpleToken(
+                      keyword,
+                      currentLine,
+                    )
               )
             )
           case _ if TwoCharacter.entrypoints.contains(char) || char == '/' =>

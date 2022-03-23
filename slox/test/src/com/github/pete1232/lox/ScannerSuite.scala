@@ -317,6 +317,42 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     }
   }
 
+  test("parse any valid keywords") {
+    val keywordGen: Gen[String] = Gen.oneOf(
+      "and",
+      "class",
+      "else",
+      "false",
+      "fun",
+      "for",
+      "if",
+      "nil",
+      "or",
+      "print",
+      "return",
+      "super",
+      "this",
+      "true",
+      "var",
+      "while",
+      "eof",
+    )
+
+    forall(keywordGen) { k =>
+      val result = DefaultScanner.scan(k)
+      expect(
+        result == List(
+          Right(
+            SimpleToken(
+              TokenType.Keyword.fromString(k).get,
+              0,
+            )
+          )
+        )
+      )
+    }
+  }
+
   pureTest("error if the token does not exist and isn't a valid identifier") {
     val result = DefaultScanner.scan("@ 1t\t_tes\rtest!")
 
