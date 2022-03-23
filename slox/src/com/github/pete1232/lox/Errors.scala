@@ -52,4 +52,12 @@ enum ScannerError(val message: String, val lexeme: String, val lineNumber: Int)
 
   override def toString =
     s"${this.getClass.getSimpleName}: $message [$lexeme] [line: $lineNumber]"
+
+  case LiteralIdentifierBadCharacter(line: Int, override val lexeme: String)
+      extends ScannerError(
+        "A non-alpha-numeric character was found in an identifier.",
+        lexeme,
+        line,
+      )
+
 end ScannerError

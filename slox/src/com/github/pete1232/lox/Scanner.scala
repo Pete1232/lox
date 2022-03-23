@@ -2,6 +2,8 @@ package com.github.pete1232.lox
 
 import com.github.pete1232.lox.TokenType.TwoCharacter
 import com.github.pete1232.lox.Token.LiteralString
+import com.github.pete1232.lox.Token.LiteralIdentifier
+import com.github.pete1232.lox.utils.*
 
 trait Scanner:
   def scan(source: String): List[Either[ScannerError, Token]]
@@ -86,6 +88,27 @@ object DefaultScanner extends Scanner:
         case Some(c) => consumeString(remaining.tail, result + c, isOpen)
 
     @scala.annotation.tailrec
+    def consumeIdentifier(
+        remaining: String,
+        result: String = "",
+    ): Either[ScannerError, String] =
+      remaining.headOption match
+        case None                                        =>
+          Right(result)
+        case Some(c) if WhitespaceCharacters.contains(c) =>
+          Right(result)
+        case Some(c)                                     =>
+          if c.isAlphaNum || c == '_' then
+            consumeIdentifier(remaining.tail, result + c)
+          else
+            Left(
+              ScannerError.LiteralIdentifierBadCharacter(
+                currentLine,
+                result + c,
+              )
+            )
+
+    @scala.annotation.tailrec
     def consumeDigits(
         remaining: String,
         result: String = "",
@@ -125,6 +148,15 @@ object DefaultScanner extends Scanner:
                   StringContext.processEscapes(
                     stringValue.substring(1, stringValue.length - 1)
                   ),
+                  currentLine,
+                )
+              )
+            )
+          case _ if char.isAlpha =>
+            consumeIdentifier(remainingInput).map(stringValue =>
+              ValidToken(
+                LiteralIdentifier(
+                  stringValue,
                   currentLine,
                 )
               )

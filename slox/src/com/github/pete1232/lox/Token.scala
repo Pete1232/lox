@@ -17,6 +17,8 @@ object Token:
           s"[$line] $lexeme, $literal"
         case LiteralNumber(lexeme, literal, line) =>
           s"[$line] $lexeme, $literal"
+        case LiteralIdentifier(lexeme, line)      =>
+          s"[$line] $lexeme"
     }
 
   final case class SimpleToken(
@@ -41,3 +43,11 @@ object Token:
     final val tokenType = TokenType.Literal.NumberLiteral
 
     final val length: Int = lexeme.length
+
+  final case class LiteralIdentifier(
+      lexeme: String,
+      line: Int,
+  ) extends Token:
+    final val tokenType = TokenType.Literal.Identifier
+
+    final val length = lexeme.length

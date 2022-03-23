@@ -98,45 +98,6 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     )
   }
 
-  pureTest("error if the token does not exist") {
-    val result = DefaultScanner.scan("t te\ttes\ntest\rtest!")
-
-    expect(
-      result == List(
-        Left(
-          ScannerError.InvalidFirstCharacter(
-            0,
-            "t",
-          )
-        ),
-        Left(
-          ScannerError.InvalidFirstCharacter(
-            0,
-            "te",
-          )
-        ),
-        Left(
-          ScannerError.InvalidFirstCharacter(
-            0,
-            "tes",
-          )
-        ),
-        Left(
-          ScannerError.InvalidFirstCharacter(
-            1,
-            "test",
-          )
-        ),
-        Left(
-          ScannerError.InvalidFirstCharacter(
-            1,
-            "test!",
-          )
-        ),
-      )
-    )
-  }
-
   pureTest("error if no space is left between valid single character tokens") {
     import TokenType.SingleCharacter.*
     import TokenType.TwoCharacter.*
@@ -325,6 +286,66 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
             "123a",
           )
         )
+      )
+    )
+  }
+
+  test("parse any valid string of characters as an identifier") {
+    // todo generator needs to filter out keywords
+    val identifierGen: Gen[String] =
+      for
+        c <- Gen.alphaChar
+        s <- Gen.stringOf(
+          Gen.oneOf(
+            (('0' to '9') ++ ('A' to 'Z') ++ ('a' to 'z') :+ ('_')).toArray
+          )
+        )
+      yield c + s
+
+    forall(identifierGen) { str =>
+      val result = DefaultScanner.scan(str)
+      expect(
+        result == List(
+          Right(
+            LiteralIdentifier(
+              str,
+              0,
+            )
+          )
+        )
+      )
+    }
+  }
+
+  pureTest("error if the token does not exist and isn't a valid identifier") {
+    val result = DefaultScanner.scan("@ 1t\t_tes\rtest!")
+
+    expect(
+      result == List(
+        Left(
+          ScannerError.InvalidFirstCharacter(
+            0,
+            "@",
+          )
+        ),
+        Left(
+          ScannerError.LiteralNumberBadCharacter(
+            0,
+            "1t",
+          )
+        ),
+        Left(
+          ScannerError.InvalidFirstCharacter(
+            0,
+            "_tes",
+          )
+        ),
+        Left(
+          ScannerError.LiteralIdentifierBadCharacter(
+            0,
+            "test!",
+          )
+        ),
       )
     )
   }
