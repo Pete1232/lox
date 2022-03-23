@@ -12,8 +12,6 @@ object DefaultScanner extends Scanner:
   def scan(source: String): List[Either[ScannerError, Token]] =
     scanLoop(source, 0, Nil)
 
-  final val WhitespaceCharacters = List(' ', '\t', '\r', '\n')
-
   @scala.annotation.tailrec
   private def scanLoop(
       remainingInput: String,
@@ -26,7 +24,7 @@ object DefaultScanner extends Scanner:
     lazy val secondCharacter        = remainingInput.tail.headOption
     lazy val thirdCharacter         = remainingInput.tail.tail.headOption
     lazy val charactersToWhitespace =
-      remainingInput.takeWhile(c => !WhitespaceCharacters.contains(c))
+      remainingInput.takeWhile(c => !c.isWhitespace)
     lazy val remainingAfterNewLine  = remainingInput.dropWhile(_ != '\n').tail
 
     def singleCharacterResult(char: Char) =
@@ -93,18 +91,18 @@ object DefaultScanner extends Scanner:
         result: String = "",
     ): Either[ScannerError, String] =
       remaining.headOption match
-        case None                                        =>
+        case None                      =>
           Right(result)
-        case Some(c) if WhitespaceCharacters.contains(c) =>
+        case Some(c) if c.isWhitespace =>
           Right(result)
-        case Some(c)                                     =>
+        case Some(c)                   =>
           if c.isAlphaNum || c == '_' then
             consumeIdentifier(remaining.tail, result + c)
           else
             Left(
               ScannerError.LiteralIdentifierBadCharacter(
                 currentLine,
-                result + c,
+                charactersToWhitespace,
               )
             )
 
@@ -115,23 +113,26 @@ object DefaultScanner extends Scanner:
         hasDecimalPoint: Boolean = false,
     ): Either[ScannerError, String] =
       remaining.headOption match
-        case None                                        => Right(result)
-        case Some(c) if WhitespaceCharacters.contains(c) => Right(result)
-        case Some(c) if c == '.'                         =>
+        case None                      => Right(result)
+        case Some(c) if c.isWhitespace => Right(result)
+        case Some(c) if c == '.'       =>
           if (hasDecimalPoint) then
             Left(
               ScannerError.LiteralNumberTwoPoints(
                 currentLine,
-                result + c,
+                charactersToWhitespace,
               )
             )
           else consumeDigits(remaining.tail, result + c, true)
-        case Some(c)                                     =>
+        case Some(c)                   =>
           if c >= '0' && c <= '9' then
             consumeDigits(remaining.tail, result + c, hasDecimalPoint)
           else
             Left(
-              ScannerError.LiteralNumberBadCharacter(currentLine, result + c)
+              ScannerError.LiteralNumberBadCharacter(
+                currentLine,
+                charactersToWhitespace,
+              )
             )
 
     val nextToken: Either[ScannerError, ScannerResult] = firstCharacter match
@@ -166,16 +167,15 @@ object DefaultScanner extends Scanner:
               case None        => singleCharacterResult(char)
               case Some(char2) =>
                 char2 match
-                  case c if WhitespaceCharacters.contains(c) =>
+                  case c if c.isWhitespace =>
                     singleCharacterResult(char)
-                  case '/'                                   => Right(Comment)
-                  case _                                     =>
+                  case '/'                 => Right(Comment)
+                  case _                   =>
                     val result = twoCharacterResult(
                       char.toString + char2.toString
                     )
                     thirdCharacter match
-                      case Some(char3)
-                          if !WhitespaceCharacters.contains(char3) =>
+                      case Some(char3) if !char3.isWhitespace =>
                         result.flatMap { _ =>
                           Left(
                             ScannerError.ValidTwoCharacterNoWhitespace(
@@ -184,7 +184,7 @@ object DefaultScanner extends Scanner:
                             )
                           )
                         }
-                      case _ => result
+                      case _                                  => result
           case _ if char.isDigit                                           =>
             consumeDigits(remainingInput).map(lexeme =>
               ScannerResult.ValidToken(
@@ -198,7 +198,7 @@ object DefaultScanner extends Scanner:
           case _                                                           =>
             val result = singleCharacterResult(char)
             secondCharacter match
-              case Some(char2) if !WhitespaceCharacters.contains(char2) =>
+              case Some(char2) if !char2.isWhitespace =>
                 result.flatMap { _ =>
                   Left(
                     ScannerError.ValidOneCharacterNoWhitespace(
@@ -207,7 +207,7 @@ object DefaultScanner extends Scanner:
                     )
                   )
                 }
-              case _ => result
+              case _                                  => result
 
     nextToken match
       case Right(EOF)   => results

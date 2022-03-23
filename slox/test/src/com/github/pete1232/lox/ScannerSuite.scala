@@ -350,4 +350,55 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     )
   }
 
+  pureTest("parse strings up to a space on errors") {
+    val result = DefaultScanner.scan("_test !a; *a* !=a, 123a5 123.4.5 test!id")
+
+    expect(
+      result == List(
+        Left(
+          ScannerError.InvalidFirstCharacter(
+            0,
+            "_test",
+          )
+        ),
+        Left(
+          ScannerError.InvalidSecondCharacter(
+            0,
+            "!a;",
+          )
+        ),
+        Left(
+          ScannerError.ValidOneCharacterNoWhitespace(
+            0,
+            "*a*",
+          )
+        ),
+        Left(
+          ScannerError.ValidTwoCharacterNoWhitespace(
+            0,
+            "!=a,",
+          )
+        ),
+        Left(
+          ScannerError.LiteralNumberBadCharacter(
+            0,
+            "123a5",
+          )
+        ),
+        Left(
+          ScannerError.LiteralNumberTwoPoints(
+            0,
+            "123.4.5",
+          )
+        ),
+        Left(
+          ScannerError.LiteralIdentifierBadCharacter(
+            0,
+            "test!id",
+          )
+        ),
+      )
+    )
+  }
+
 end ScannerSuite
