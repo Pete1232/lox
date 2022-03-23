@@ -387,7 +387,8 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
   }
 
   pureTest("parse strings up to a space on errors") {
-    val result = DefaultScanner.scan("_test !a; *a* !=a, 123a5 123.4.5 test!id")
+    val result =
+      DefaultScanner.scan("_test !a; *a* !=a, 123a5 123.4.5 test!id var~if")
 
     expect(
       result == List(
@@ -431,6 +432,12 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
           ScannerError.LiteralIdentifierBadCharacter(
             0,
             "test!id",
+          )
+        ),
+        Left(
+          ScannerError.LiteralIdentifierBadCharacter(
+            0,
+            "var~if",
           )
         ),
       )
