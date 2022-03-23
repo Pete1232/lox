@@ -135,6 +135,21 @@ object DefaultScanner extends Scanner:
               )
             )
 
+    def consumeComment(
+        remaining: String,
+        result: String = "",
+        canClose: Boolean = false,
+    ): Either[ScannerError, String] =
+      remaining.headOption match
+        case None => Left(ScannerError.UnclosedComment(currentLine, result))
+        case Some(c) if c == '/' =>
+          if canClose then Right(result + c)
+          else consumeComment(remaining.tail, result + c, canClose = false)
+        case Some(c) if c == '*' =>
+          consumeComment(remaining.tail, result + c, canClose = true)
+        case Some(c)             =>
+          consumeComment(remaining.tail, result + c, canClose = false)
+
     val nextToken: Either[ScannerError, ScannerResult] = firstCharacter match
       case None       => Right(EOF)
       case Some(char) =>
@@ -178,13 +193,10 @@ object DefaultScanner extends Scanner:
                     singleCharacterResult(char)
                   case '/'                 => Right(Comment)
                   case '*'                 =>
-                    val fullComment  = remainingInput.tail.takeWhile(_ != '/')
-                    val newLineCount = fullComment.count(_ == '\n')
-                    // todo find the end properly
-                    Right(
+                    consumeComment(remainingInput).map(stringValue =>
                       MultiLineComment(
-                        length = fullComment.length + 2,
-                        lines = newLineCount,
+                        length = stringValue.length,
+                        lines = stringValue.count(_ == '\n'),
                       )
                     )
                   case _                   =>

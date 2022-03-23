@@ -445,7 +445,7 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
   }
 
   pureTest("allow single-line comments with /**/ syntax") {
-    val result = DefaultScanner.scan("var a = /*a single line comment*/ 1")
+    val result = DefaultScanner.scan("var a = /*a single line / * comment*/ 1")
 
     expect(
       result == List(
@@ -463,7 +463,7 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
 
   pureTest("allow multi-line comments") {
     val result = DefaultScanner.scan(
-      "var a = /*a \n multi \n line\n comment*/ 1"
+      "var a = /*a \n multi \n line / \n * comment*/ 1"
     )
     expect(
       result == List(
@@ -475,6 +475,17 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
         ),
         Right(SimpleToken(TokenType.SingleCharacter.Equal, 0)),
         Right(LiteralNumber("1", 1, 3)),
+      )
+    )
+  }
+
+  pureTest("error on unclosed comments") {
+    val result = DefaultScanner.scan("/* test")
+    expect(
+      result == List(
+        Left(
+          ScannerError.UnclosedComment(0, "/* test")
+        )
       )
     )
   }

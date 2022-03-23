@@ -50,14 +50,21 @@ enum ScannerError(val message: String, val lexeme: String, val lineNumber: Int)
         line,
       )
 
-  override def toString =
-    s"${this.getClass.getSimpleName}: $message [$lexeme] [line: $lineNumber]"
-
   case LiteralIdentifierBadCharacter(line: Int, override val lexeme: String)
       extends ScannerError(
         "A non-alpha-numeric character was found in an identifier.",
         lexeme,
         line,
       )
+
+  case UnclosedComment(line: Int, override val lexeme: String)
+      extends ScannerError(
+        "A comment was left unclosed.",
+        lexeme,
+        line,
+      )
+
+  override def toString =
+    s"${this.getClass.getSimpleName}: $message [$lexeme] [line: $lineNumber]"
 
 end ScannerError
