@@ -13,6 +13,8 @@ object Token:
       t match
         case SimpleToken(tokenType, line)         =>
           s"[$line] $tokenType"
+        case OperatorToken(tokenType, line)       =>
+          s"[$line] $tokenType"
         case LiteralString(lexeme, literal, line) =>
           s"[$line] $lexeme, $literal"
         case LiteralNumber(lexeme, literal, line) =>
@@ -23,6 +25,12 @@ object Token:
 
   final case class SimpleToken(
       tokenType: FixedTokenType,
+      line: Int,
+  ) extends Token:
+    final val length: Int = tokenType.length
+
+  final case class OperatorToken(
+      tokenType: OperatorType,
       line: Int,
   ) extends Token:
     final val length: Int = tokenType.length
@@ -51,3 +59,4 @@ object Token:
     final val tokenType = TokenType.Literal.Identifier
 
     final val length = lexeme.length
+end Token

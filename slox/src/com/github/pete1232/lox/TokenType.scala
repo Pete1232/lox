@@ -1,31 +1,35 @@
 package com.github.pete1232.lox
 
-import scala.collection.View.Single
 import cats.Show
 
 sealed trait TokenType
 
-class FixedTokenType(val lexeme: String) extends TokenType:
+trait FixedTokenType extends TokenType:
+  def lexeme: String
   final val length = lexeme.length
+
+trait OperatorType extends FixedTokenType
+
+object OperatorType:
+  implicit val showOperatorType: Show[OperatorType] = Show.fromToString
 
 object TokenType:
 
-  enum SingleCharacter(lexeme: String) extends FixedTokenType(lexeme):
+  enum SingleCharacter(final val lexeme: String) extends FixedTokenType:
     case LeftParen  extends SingleCharacter("(")
     case RightParen extends SingleCharacter(")")
     case LeftBrace  extends SingleCharacter("{")
     case RightBrace extends SingleCharacter("}")
     case Comma      extends SingleCharacter(",")
     case Dot        extends SingleCharacter(".")
-    case Minus      extends SingleCharacter("-")
-    case Plus       extends SingleCharacter("+")
     case Semicolon  extends SingleCharacter(";")
-    case Slash      extends SingleCharacter("/")
-    case Star       extends SingleCharacter("*")
-    case Bang       extends SingleCharacter("!")
-    case Equal      extends SingleCharacter("=")
-    case Greater    extends SingleCharacter(">")
-    case Less       extends SingleCharacter("<")
+    case Minus      extends SingleCharacter("-") with OperatorType
+    case Plus       extends SingleCharacter("+") with OperatorType
+    case Slash      extends SingleCharacter("/") with OperatorType
+    case Star       extends SingleCharacter("*") with OperatorType
+    case Equal      extends SingleCharacter("=") with OperatorType
+    case Greater    extends SingleCharacter(">") with OperatorType
+    case Less       extends SingleCharacter("<") with OperatorType
 
   object SingleCharacter:
     implicit val showSingleCharacter: Show[TokenType.SingleCharacter] =
@@ -34,7 +38,7 @@ object TokenType:
     def fromString(s: String): Option[TokenType.SingleCharacter] =
       SingleCharacter.values.find(_.lexeme == s)
 
-  enum TwoCharacter(lexeme: String) extends FixedTokenType(lexeme):
+  enum TwoCharacter(final val lexeme: String) extends OperatorType:
     case BangEqual    extends TwoCharacter("!=")
     case EqualEqual   extends TwoCharacter("==")
     case GreaterEqual extends TwoCharacter(">=")
@@ -52,7 +56,7 @@ object TokenType:
   enum Literal extends TokenType:
     case Identifier, StringLiteral, NumberLiteral
 
-  enum Keyword(lexeme: String) extends FixedTokenType(lexeme):
+  enum Keyword(val lexeme: String) extends FixedTokenType:
     case And    extends Keyword("and")
     case Class  extends Keyword("class")
     case Else   extends Keyword("else")

@@ -9,22 +9,49 @@ import scala.util.hashing.Hashing.Default
 object ScannerSuite extends SimpleIOSuite with Checkers:
 
   val singleCharacterTokenGen: Gen[TokenType.SingleCharacter] =
-    Gen.oneOf(TokenType.SingleCharacter.values)
+    Gen.oneOf(
+      TokenType.SingleCharacter.LeftParen,
+      TokenType.SingleCharacter.RightParen,
+      TokenType.SingleCharacter.LeftBrace,
+      TokenType.SingleCharacter.RightBrace,
+      TokenType.SingleCharacter.Comma,
+      TokenType.SingleCharacter.Dot,
+      TokenType.SingleCharacter.Semicolon,
+    )
+
+  val singleCharacterOperatorGen: Gen[OperatorType] =
+    Gen.oneOf(
+      TokenType.SingleCharacter.Minus,
+      TokenType.SingleCharacter.Plus,
+      TokenType.SingleCharacter.Slash,
+      TokenType.SingleCharacter.Star,
+      TokenType.SingleCharacter.Equal,
+      TokenType.SingleCharacter.Greater,
+      TokenType.SingleCharacter.Less,
+    )
 
   val twoCharacterTokenGen: Gen[TokenType.TwoCharacter] =
     Gen.oneOf(TokenType.TwoCharacter.values)
 
   test("scan tokens with a single character") {
-    forall(singleCharacterTokenGen) { token =>
+    forall(singleCharacterTokenGen.filterNot(_.isInstanceOf[OperatorType])) {
+      token =>
+        val result = DefaultScanner.scan(token.lexeme).flatMap(_.toSeq)
+        expect(result == List(SimpleToken(token, 0)))
+    }
+  }
+
+  test("scan operator specific tokens with a single character") {
+    forall(singleCharacterOperatorGen) { token =>
       val result = DefaultScanner.scan(token.lexeme).flatMap(_.toSeq)
-      expect(result == List(SimpleToken(token, 0)))
+      expect(result == List(OperatorToken(token, 0)))
     }
   }
 
   test("scan tokens with two characters") {
     forall(twoCharacterTokenGen) { token =>
       val result = DefaultScanner.scan(token.lexeme).flatMap(_.toSeq)
-      expect(result == List(SimpleToken(token, 0)))
+      expect(result == List(OperatorToken(token, 0)))
     }
   }
 
@@ -84,10 +111,10 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     val result = DefaultScanner.scan("+\n* \n / // this is a comment \n- #")
     expect(
       result == List(
-        Right(SimpleToken(Plus, 0)),
-        Right(SimpleToken(Star, 1)),
-        Right(SimpleToken(Slash, 2)),
-        Right(SimpleToken(Minus, 3)),
+        Right(OperatorToken(Plus, 0)),
+        Right(OperatorToken(Star, 1)),
+        Right(OperatorToken(Slash, 2)),
+        Right(OperatorToken(Minus, 3)),
         Left(
           ScannerError.InvalidFirstCharacter(
             3,
@@ -455,7 +482,7 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
         Right(
           LiteralIdentifier("a", 0)
         ),
-        Right(SimpleToken(TokenType.SingleCharacter.Equal, 0)),
+        Right(OperatorToken(TokenType.SingleCharacter.Equal, 0)),
         Right(LiteralNumber("1", 1, 0)),
       )
     )
@@ -473,7 +500,7 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
         Right(
           LiteralIdentifier("a", 0)
         ),
-        Right(SimpleToken(TokenType.SingleCharacter.Equal, 0)),
+        Right(OperatorToken(TokenType.SingleCharacter.Equal, 0)),
         Right(LiteralNumber("1", 1, 3)),
       )
     )

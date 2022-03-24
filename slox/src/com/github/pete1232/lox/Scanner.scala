@@ -30,7 +30,13 @@ object DefaultScanner extends Scanner:
     def singleCharacterResult(char: Char) =
       TokenType.SingleCharacter
         .fromString(char.toString)
-        .map(tokenType => ValidToken(Token.SimpleToken(tokenType, currentLine)))
+        .map(
+          _ match
+            case op: OperatorType      =>
+              ValidToken(Token.OperatorToken(op, currentLine))
+            case fixed: FixedTokenType =>
+              ValidToken(Token.SimpleToken(fixed, currentLine))
+        )
         .toRight(
           ScannerError.InvalidFirstCharacter(
             currentLine,
@@ -43,7 +49,7 @@ object DefaultScanner extends Scanner:
         .fromString(lexeme)
         .map(tokenType =>
           ValidToken(
-            Token.SimpleToken(tokenType, currentLine)
+            Token.OperatorToken(tokenType, currentLine)
           )
         )
         .toRight(
