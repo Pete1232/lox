@@ -7,7 +7,9 @@ sealed trait Expression
 object Expression:
 
   final case class Literal(
-      value: Token
+      value: Token.LiteralNumber | Token.LiteralString |
+        Token.Keyword.True.type | Token.Keyword.False.type |
+        Token.Keyword.Nil.type
   ) extends Expression
 
   final case class Group(
@@ -15,12 +17,15 @@ object Expression:
   ) extends Expression
 
   final case class Unary(
-      operator: Token,
+      operator: Token.SingleCharacter.Minus.type |
+        Token.SingleCharacter.Bang.type,
       right: Expression,
   ) extends Expression
 
   final case class Binary(
       left: Expression,
-      operator: Token,
+      operator: Token.TwoCharacter | Token.SingleCharacter.Less.type |
+        Token.SingleCharacter.Greater.type | Token.SingleCharacter.Plus.type |
+        Token.SingleCharacter.Star.type | Token.SingleCharacter.Slash.type,
       right: Expression,
   ) extends Expression
