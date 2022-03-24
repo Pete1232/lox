@@ -1,8 +1,5 @@
 package com.github.pete1232.lox
 
-import com.github.pete1232.lox.TokenType.TwoCharacter
-import com.github.pete1232.lox.Token.LiteralString
-import com.github.pete1232.lox.Token.LiteralIdentifier
 import com.github.pete1232.lox.utils.*
 
 trait Scanner:
@@ -28,15 +25,9 @@ object DefaultScanner extends Scanner:
     lazy val remainingAfterNewLine  = remainingInput.dropWhile(_ != '\n').tail
 
     def singleCharacterResult(char: Char) =
-      TokenType.SingleCharacter
+      Token.SingleCharacter
         .fromString(char.toString)
-        .map(
-          _ match
-            case op: OperatorType      =>
-              ValidToken(Token.OperatorToken(op, currentLine))
-            case fixed: FixedTokenType =>
-              ValidToken(Token.SimpleToken(fixed, currentLine))
-        )
+        .map(token => ValidToken(token, currentLine))
         .toRight(
           ScannerError.InvalidFirstCharacter(
             currentLine,
@@ -45,11 +36,12 @@ object DefaultScanner extends Scanner:
         )
 
     def twoCharacterResult(lexeme: String) =
-      TokenType.TwoCharacter
+      Token.TwoCharacter
         .fromString(lexeme)
-        .map(tokenType =>
+        .map(token =>
           ValidToken(
-            Token.OperatorToken(tokenType, currentLine)
+            token,
+            currentLine,
           )
         )
         .toRight(
@@ -165,32 +157,31 @@ object DefaultScanner extends Scanner:
           case '"'               =>
             consumeString(remainingInput).map(stringValue =>
               ValidToken(
-                LiteralString(
+                Token.LiteralString(
                   stringValue,
                   StringContext.processEscapes(
                     stringValue.substring(1, stringValue.length - 1)
                   ),
-                  currentLine,
-                )
+                ),
+                currentLine,
               )
             )
           case _ if char.isAlpha =>
-            consumeIdentifier(remainingInput).map(stringValue =>
-              ValidToken(
-                TokenType.Keyword.fromString(stringValue) match
-                  case None          =>
-                    LiteralIdentifier(
-                      stringValue,
-                      currentLine,
-                    )
-                  case Some(keyword) =>
-                    Token.SimpleToken(
-                      keyword,
-                      currentLine,
-                    )
-              )
-            )
-          case _ if TwoCharacter.entrypoints.contains(char) || char == '/' =>
+            consumeIdentifier(remainingInput).map { stringValue =>
+              val token = Token.Keyword.fromString(stringValue) match
+                case None          =>
+                  Token.LiteralIdentifier(
+                    stringValue,
+                    stringValue,
+                  )
+                case Some(keyword) =>
+                  keyword
+              ValidToken(token, currentLine)
+            }
+          case _
+              if Token.TwoCharacter.entrypoints.contains(
+                char
+              ) || char == '/' =>
             secondCharacter match
               case None        => singleCharacterResult(char)
               case Some(char2) =>
@@ -220,17 +211,17 @@ object DefaultScanner extends Scanner:
                           )
                         }
                       case _                                  => result
-          case _ if char.isDigit                                           =>
+          case _ if char.isDigit =>
             consumeDigits(remainingInput).map(lexeme =>
-              ScannerResult.ValidToken(
+              ValidToken(
                 Token.LiteralNumber(
                   lexeme,
                   lexeme.toDouble,
-                  currentLine,
-                )
+                ),
+                currentLine,
               )
             )
-          case _                                                           =>
+          case _                 =>
             val result = singleCharacterResult(char)
             secondCharacter match
               case Some(char2) if !char2.isWhitespace =>
@@ -251,7 +242,7 @@ object DefaultScanner extends Scanner:
         scanLoop(remainingAfterNewLine, currentLine + 1, results)
       case Right(MultiLineComment(length, lines)) =>
         scanLoop(remainingInput.drop(length), currentLine + lines, results)
-      case Right(ValidToken(token))               =>
+      case Right(ValidToken(token, _))            =>
         scanLoop(
           remainingInput.drop(token.length),
           currentLine,
@@ -266,7 +257,7 @@ object DefaultScanner extends Scanner:
   end scanLoop
 
   enum ScannerResult:
-    case ValidToken(token: Token)
+    case ValidToken(token: Token, line: Int)
     case MultiLineComment(length: Int, lines: Int)
     case EOF, Space, Comment, NewLine
 end DefaultScanner

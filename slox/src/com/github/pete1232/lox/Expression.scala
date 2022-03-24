@@ -1,13 +1,13 @@
 package com.github.pete1232.lox
 
-import com.github.pete1232.lox.Token.OperatorToken
+import com.github.pete1232.lox.Token
 
 sealed trait Expression
 
 object Expression:
 
   final case class Literal(
-      value: Token.LiteralNumber | Token.LiteralString | Token.SimpleToken
+      value: Token
   ) extends Expression
 
   final case class Group(
@@ -15,12 +15,12 @@ object Expression:
   ) extends Expression
 
   final case class Unary(
-      operator: OperatorToken,
+      operator: Token,
       right: Expression,
   ) extends Expression
 
   final case class Binary(
       left: Expression,
-      operator: Token.OperatorToken,
+      operator: Token,
       right: Expression,
   ) extends Expression

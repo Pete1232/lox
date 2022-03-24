@@ -8,50 +8,23 @@ import scala.util.hashing.Hashing.Default
 
 object ScannerSuite extends SimpleIOSuite with Checkers:
 
-  val singleCharacterTokenGen: Gen[TokenType.SingleCharacter] =
-    Gen.oneOf(
-      TokenType.SingleCharacter.LeftParen,
-      TokenType.SingleCharacter.RightParen,
-      TokenType.SingleCharacter.LeftBrace,
-      TokenType.SingleCharacter.RightBrace,
-      TokenType.SingleCharacter.Comma,
-      TokenType.SingleCharacter.Dot,
-      TokenType.SingleCharacter.Semicolon,
-    )
+  val singleCharacterTokenGen: Gen[Token.SingleCharacter] =
+    Gen.oneOf(Token.SingleCharacter.values)
 
-  val singleCharacterOperatorGen: Gen[OperatorType] =
-    Gen.oneOf(
-      TokenType.SingleCharacter.Minus,
-      TokenType.SingleCharacter.Plus,
-      TokenType.SingleCharacter.Slash,
-      TokenType.SingleCharacter.Star,
-      TokenType.SingleCharacter.Equal,
-      TokenType.SingleCharacter.Greater,
-      TokenType.SingleCharacter.Less,
-    )
-
-  val twoCharacterTokenGen: Gen[TokenType.TwoCharacter] =
-    Gen.oneOf(TokenType.TwoCharacter.values)
+  val twoCharacterTokenGen: Gen[Token.TwoCharacter] =
+    Gen.oneOf(Token.TwoCharacter.values)
 
   test("scan tokens with a single character") {
-    forall(singleCharacterTokenGen.filterNot(_.isInstanceOf[OperatorType])) {
-      token =>
-        val result = DefaultScanner.scan(token.lexeme).flatMap(_.toSeq)
-        expect(result == List(SimpleToken(token, 0)))
-    }
-  }
-
-  test("scan operator specific tokens with a single character") {
-    forall(singleCharacterOperatorGen) { token =>
+    forall(singleCharacterTokenGen) { token =>
       val result = DefaultScanner.scan(token.lexeme).flatMap(_.toSeq)
-      expect(result == List(OperatorToken(token, 0)))
+      expect(result == List(token))
     }
   }
 
   test("scan tokens with two characters") {
     forall(twoCharacterTokenGen) { token =>
       val result = DefaultScanner.scan(token.lexeme).flatMap(_.toSeq)
-      expect(result == List(OperatorToken(token, 0)))
+      expect(result == List(token))
     }
   }
 
@@ -91,10 +64,10 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
   }
 
   pureTest("ignore whitespace between tokens") {
-    import TokenType.SingleCharacter.*
+    import Token.SingleCharacter.*
     val result = DefaultScanner.scan("\r(\t= = )\n{ } ;")
     expect(
-      result.map(_.map(_.tokenType)) == List(
+      result == List(
         Right(LeftParen),
         Right(Equal),
         Right(Equal),
@@ -107,14 +80,14 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
   }
 
   pureTest("report the line correctly") {
-    import TokenType.SingleCharacter.*
+    import Token.SingleCharacter.*
     val result = DefaultScanner.scan("+\n* \n / // this is a comment \n- #")
     expect(
       result == List(
-        Right(OperatorToken(Plus, 0)),
-        Right(OperatorToken(Star, 1)),
-        Right(OperatorToken(Slash, 2)),
-        Right(OperatorToken(Minus, 3)),
+        Right(Plus),
+        Right(Star),
+        Right(Slash),
+        Right(Minus),
         Left(
           ScannerError.InvalidFirstCharacter(
             3,
@@ -126,8 +99,8 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
   }
 
   pureTest("error if no space is left between valid single character tokens") {
-    import TokenType.SingleCharacter.*
-    import TokenType.TwoCharacter.*
+    import Token.SingleCharacter.*
+    import Token.TwoCharacter.*
 
     val result = DefaultScanner.scan("*/ +% /@- !£")
 
@@ -162,8 +135,8 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
   }
 
   pureTest("error if no space is left between valid two character tokens") {
-    import TokenType.SingleCharacter.*
-    import TokenType.TwoCharacter.*
+    import Token.SingleCharacter.*
+    import Token.TwoCharacter.*
 
     val result = DefaultScanner.scan("==* ==^;&")
 
@@ -195,7 +168,6 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
             LiteralString(
               inputString,
               str,
-              0,
             )
           )
         )
@@ -212,7 +184,6 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
           LiteralString(
             inputString,
             "abc123\"",
-            0,
           )
         )
       )
@@ -264,14 +235,12 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
             LiteralNumber(
               num.toString,
               num,
-              0,
             )
           ),
           Right(
             LiteralString(
               "\"another token\"",
               "another token",
-              0,
             )
           ),
         )
@@ -288,14 +257,12 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
             LiteralNumber(
               num.toString,
               num,
-              0,
             )
           ),
           Right(
             LiteralString(
               "\"another token\"",
               "another token",
-              1,
             )
           ),
         )
@@ -336,7 +303,7 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
           Right(
             LiteralIdentifier(
               str,
-              0,
+              str,
             )
           )
         )
@@ -345,35 +312,16 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
   }
 
   test("parse any valid keywords") {
-    val keywordGen: Gen[String] = Gen.oneOf(
-      "and",
-      "class",
-      "else",
-      "false",
-      "fun",
-      "for",
-      "if",
-      "nil",
-      "or",
-      "print",
-      "return",
-      "super",
-      "this",
-      "true",
-      "var",
-      "while",
-      "eof",
+    val keywordGen: Gen[Token.Keyword] = Gen.oneOf(
+      Token.Keyword.values
     )
 
     forall(keywordGen) { k =>
-      val result = DefaultScanner.scan(k)
+      val result = DefaultScanner.scan(k.lexeme)
       expect(
         result == List(
           Right(
-            SimpleToken(
-              TokenType.Keyword.fromString(k).get,
-              0,
-            )
+            k
           )
         )
       )
@@ -477,13 +425,13 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     expect(
       result == List(
         Right(
-          SimpleToken(TokenType.Keyword.Var, 0)
+          Token.Keyword.Var
         ),
         Right(
-          LiteralIdentifier("a", 0)
+          LiteralIdentifier("a", "a")
         ),
-        Right(OperatorToken(TokenType.SingleCharacter.Equal, 0)),
-        Right(LiteralNumber("1", 1, 0)),
+        Right(Token.SingleCharacter.Equal),
+        Right(LiteralNumber("1", 1)),
       )
     )
   }
@@ -495,13 +443,13 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     expect(
       result == List(
         Right(
-          SimpleToken(TokenType.Keyword.Var, 0)
+          Token.Keyword.Var
         ),
         Right(
-          LiteralIdentifier("a", 0)
+          LiteralIdentifier("a", "a")
         ),
-        Right(OperatorToken(TokenType.SingleCharacter.Equal, 0)),
-        Right(LiteralNumber("1", 1, 3)),
+        Right(Token.SingleCharacter.Equal),
+        Right(LiteralNumber("1", 1)),
       )
     )
   }
