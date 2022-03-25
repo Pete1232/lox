@@ -1,9 +1,10 @@
 package com.github.pete1232.lox
 
+import com.github.pete1232.lox.errors.ParserError
+
+import org.scalacheck.Gen
 import weaver.SimpleIOSuite
 import weaver.scalacheck.Checkers
-import org.scalacheck.Gen
-import com.github.pete1232.lox.errors.ParserError
 
 object ParserSuite extends SimpleIOSuite with Checkers:
 

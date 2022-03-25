@@ -1,6 +1,7 @@
 package com.github.pete1232.lox
 
 import com.github.pete1232.lox.Token
+
 import cats.Show
 
 sealed trait Expression

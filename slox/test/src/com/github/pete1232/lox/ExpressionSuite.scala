@@ -1,7 +1,7 @@
 package com.github.pete1232.lox
 
-import weaver.SimpleIOSuite
 import cats.Show
+import weaver.SimpleIOSuite
 
 object ExpressionSuite extends SimpleIOSuite:
 

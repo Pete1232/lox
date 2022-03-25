@@ -1,13 +1,14 @@
 package com.github.pete1232.lox
 
-import cats.effect.{ExitCode, IO, IOApp}
-import cats.effect.kernel.Resource
-import cats.implicits.*
 import scala.io.Source
 
 import java.io.EOFException
 import java.nio.file.{Files, NoSuchFileException, Path}
+
+import cats.effect.{ExitCode, IO, IOApp}
+import cats.effect.kernel.Resource
 import cats.effect.std.Console
+import cats.implicits.*
 
 final case class Runner(scanner: Scanner)(implicit console: Console[IO]):
 

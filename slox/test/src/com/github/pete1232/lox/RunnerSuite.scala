@@ -1,11 +1,12 @@
 package com.github.pete1232.lox
 
-import weaver.SimpleIOSuite
+import java.io.EOFException
+import java.nio.charset.Charset
+
 import cats.Show
 import cats.effect.IO
 import cats.effect.std.Console
-import java.nio.charset.Charset
-import java.io.EOFException
+import weaver.SimpleIOSuite
 
 object RunnerSuite extends SimpleIOSuite:
 
