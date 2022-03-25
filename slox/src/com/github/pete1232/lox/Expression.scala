@@ -16,13 +16,11 @@ object Expression:
   )
 
   final case class Literal(
-      value: Token.LiteralNumber | Token.LiteralString |
-        Token.Keyword.True.type | Token.Keyword.False.type |
-        Token.Keyword.Nil.type
+      value: Double | String | Boolean
   ) extends Expression
 
   object Literal:
-    implicit val showLiteral: Show[Literal] = Show.show(_.value.lexeme)
+    implicit val showLiteral: Show[Literal] = Show.show(_.value.toString)
 
   final case class Group(
       expression: Expression
