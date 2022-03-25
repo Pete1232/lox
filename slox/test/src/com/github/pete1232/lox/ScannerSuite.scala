@@ -1,7 +1,8 @@
 package com.github.pete1232.lox
 
 import weaver.SimpleIOSuite
-import Token.*
+import com.github.pete1232.lox.Token.*
+import com.github.pete1232.lox.errors.ScannerError
 import org.scalacheck.Gen
 import weaver.scalacheck.Checkers
 import scala.util.hashing.Hashing.Default

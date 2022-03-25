@@ -1,5 +1,6 @@
 package com.github.pete1232.lox
 
+import com.github.pete1232.lox.errors.ScannerError
 import com.github.pete1232.lox.utils.*
 
 trait Scanner:

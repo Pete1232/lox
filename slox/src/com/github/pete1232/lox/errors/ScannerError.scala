@@ -1,4 +1,4 @@
-package com.github.pete1232.lox
+package com.github.pete1232.lox.errors
 
 import cats.Show
 
