@@ -17,14 +17,14 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
   test("scan tokens with a single character") {
     forall(singleCharacterTokenGen) { token =>
       val result = DefaultScanner.scan(token.lexeme).flatMap(_.toSeq)
-      expect(result == List(token))
+      expect(result == List(TokenWithContext(token, TokenContext(0))))
     }
   }
 
   test("scan tokens with two characters") {
     forall(twoCharacterTokenGen) { token =>
       val result = DefaultScanner.scan(token.lexeme).flatMap(_.toSeq)
-      expect(result == List(token))
+      expect(result == List(TokenWithContext(token, TokenContext(0))))
     }
   }
 
@@ -65,7 +65,7 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
 
   pureTest("ignore whitespace between tokens") {
     import Token.SingleCharacter.*
-    val result = DefaultScanner.scan("\r(\t= = )\n{ } ;")
+    val result = DefaultScanner.scan("\r(\t= = )\n{ } ;").map(_.map(_.token))
     expect(
       result == List(
         Right(LeftParen),
@@ -84,10 +84,10 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     val result = DefaultScanner.scan("+\n* \n / // this is a comment \n- #")
     expect(
       result == List(
-        Right(Plus),
-        Right(Star),
-        Right(Slash),
-        Right(Minus),
+        Right(TokenWithContext(Plus, TokenContext(0))),
+        Right(TokenWithContext(Star, TokenContext(1))),
+        Right(TokenWithContext(Slash, TokenContext(2))),
+        Right(TokenWithContext(Minus, TokenContext(3))),
         Left(
           ScannerError.InvalidFirstCharacter(
             3,
@@ -161,7 +161,7 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
   test("parse a string literal") {
     forall(Gen.alphaStr) { str =>
       val inputString = "\"" + str + "\""
-      val result      = DefaultScanner.scan(inputString)
+      val result      = DefaultScanner.scan(inputString).map(_.map(_.token))
       expect(
         result == List(
           Right(
@@ -177,7 +177,7 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
 
   pureTest("parse a string literal with an escaped quote") {
     val inputString = "\"" + "abc123\\\"" + "\""
-    val result      = DefaultScanner.scan(inputString)
+    val result      = DefaultScanner.scan(inputString).map(_.map(_.token))
     expect(
       result == List(
         Right(
@@ -228,7 +228,9 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
 
   test("parse a valid positive long as a numeric literal") {
     forall(Gen.posNum[Long]) { num =>
-      val result = DefaultScanner.scan(num.toString + " \"another token\"")
+      val result = DefaultScanner
+        .scan(num.toString + " \"another token\"")
+        .map(_.map(_.token))
       expect(
         result == List(
           Right(
@@ -250,7 +252,9 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
 
   test("parse a valid positive double as a numeric literal") {
     forall(Gen.posNum[Double]) { num =>
-      val result = DefaultScanner.scan(num.toString + "\n\"another token\"")
+      val result = DefaultScanner
+        .scan(num.toString + "\n\"another token\"")
+        .map(_.map(_.token))
       expect(
         result == List(
           Right(
@@ -285,7 +289,6 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
   }
 
   test("parse any valid string of characters as an identifier") {
-    // todo generator needs to filter out keywords
     val identifierGen: Gen[String] =
       for
         c <- Gen.alphaChar
@@ -296,8 +299,10 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
         )
       yield c + s
 
-    forall(identifierGen) { str =>
-      val result = DefaultScanner.scan(str)
+    forall(
+      identifierGen.filterNot(Token.Keyword.values.map(_.lexeme).contains)
+    ) { str =>
+      val result = DefaultScanner.scan(str).map(_.map(_.token))
       expect(
         result == List(
           Right(
@@ -317,7 +322,7 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     )
 
     forall(keywordGen) { k =>
-      val result = DefaultScanner.scan(k.lexeme)
+      val result = DefaultScanner.scan(k.lexeme).map(_.map(_.token))
       expect(
         result == List(
           Right(
@@ -420,7 +425,9 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
   }
 
   pureTest("allow single-line comments with /**/ syntax") {
-    val result = DefaultScanner.scan("var a = /*a single line / * comment*/ 1")
+    val result = DefaultScanner
+      .scan("var a = /*a single line / * comment*/ 1")
+      .map(_.map(_.token))
 
     expect(
       result == List(
@@ -442,14 +449,10 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     )
     expect(
       result == List(
-        Right(
-          Token.Keyword.Var
-        ),
-        Right(
-          LiteralIdentifier("a", "a")
-        ),
-        Right(Token.SingleCharacter.Equal),
-        Right(LiteralNumber("1", 1)),
+        Right(TokenWithContext(Token.Keyword.Var, TokenContext(0))),
+        Right(TokenWithContext(LiteralIdentifier("a", "a"), TokenContext(0))),
+        Right(TokenWithContext(Token.SingleCharacter.Equal, TokenContext(0))),
+        Right(TokenWithContext(LiteralNumber("1", 1), TokenContext(3))),
       )
     )
   }

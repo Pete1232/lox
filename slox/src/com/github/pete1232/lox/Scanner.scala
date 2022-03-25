@@ -3,18 +3,18 @@ package com.github.pete1232.lox
 import com.github.pete1232.lox.utils.*
 
 trait Scanner:
-  def scan(source: String): List[Either[ScannerError, Token]]
+  def scan(source: String): List[Either[ScannerError, TokenWithContext]]
 
 object DefaultScanner extends Scanner:
-  def scan(source: String): List[Either[ScannerError, Token]] =
+  def scan(source: String): List[Either[ScannerError, TokenWithContext]] =
     scanLoop(source, 0, Nil)
 
   @scala.annotation.tailrec
   private def scanLoop(
       remainingInput: String,
       currentLine: Int,
-      results: List[Either[ScannerError, Token]],
-  ): List[Either[ScannerError, Token]] =
+      results: List[Either[ScannerError, TokenWithContext]],
+  ): List[Either[ScannerError, TokenWithContext]] =
     import ScannerResult.*
 
     val firstCharacter              = remainingInput.headOption
@@ -242,11 +242,11 @@ object DefaultScanner extends Scanner:
         scanLoop(remainingAfterNewLine, currentLine + 1, results)
       case Right(MultiLineComment(length, lines)) =>
         scanLoop(remainingInput.drop(length), currentLine + lines, results)
-      case Right(ValidToken(token, _))            =>
+      case Right(ValidToken(token, line))         =>
         scanLoop(
           remainingInput.drop(token.length),
           currentLine,
-          results :+ Right(token),
+          results :+ Right(TokenWithContext(token, TokenContext(line))),
         )
       case Left(err)                              =>
         scanLoop(

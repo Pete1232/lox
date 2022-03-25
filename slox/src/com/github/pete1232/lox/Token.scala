@@ -6,6 +6,10 @@ sealed trait Token:
   def lexeme: String
   final val length: Int = lexeme.length
 
+final case class TokenWithContext(token: Token, context: TokenContext)
+
+final case class TokenContext(lineCount: Int)
+
 object Token:
 
   implicit def showToken[T <: Token]: Show[T] =
