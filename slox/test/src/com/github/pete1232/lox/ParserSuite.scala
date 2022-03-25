@@ -10,7 +10,12 @@ object ParserSuite extends SimpleIOSuite with Checkers:
   test("primary rule can match a literal string") {
     forall(Gen.alphaNumStr) { stringLiteral =>
       val tokens =
-        List(Token.LiteralString(s"\"${stringLiteral}\"", stringLiteral))
+        List(
+          TokenWithContext(
+            Token.LiteralString(s"\"${stringLiteral}\"", stringLiteral),
+            TokenContext(0),
+          )
+        )
       val result = DefaultParser.parse(tokens)
       expect(result == List(Right(Expression.Literal(stringLiteral))))
     }
@@ -19,7 +24,12 @@ object ParserSuite extends SimpleIOSuite with Checkers:
   test("primary rule can match a literal number") {
     forall(Gen.double) { numberLiteral =>
       val tokens =
-        List(Token.LiteralNumber(numberLiteral.toString, numberLiteral))
+        List(
+          TokenWithContext(
+            Token.LiteralNumber(numberLiteral.toString, numberLiteral),
+            TokenContext(0),
+          )
+        )
       val result = DefaultParser.parse(tokens)
       expect(result == List(Right(Expression.Literal(numberLiteral))))
     }
@@ -28,8 +38,8 @@ object ParserSuite extends SimpleIOSuite with Checkers:
   pureTest("primary rule can match a boolean") {
     val tokens =
       List(
-        Token.Keyword.True,
-        Token.Keyword.False,
+        TokenWithContext(Token.Keyword.True, TokenContext(0)),
+        TokenWithContext(Token.Keyword.False, TokenContext(0)),
       )
     val result = DefaultParser.parse(tokens)
     expect(
@@ -43,20 +53,24 @@ object ParserSuite extends SimpleIOSuite with Checkers:
   pureTest("primary rule can match a nil value") {
     val tokens =
       List(
-        Token.Keyword.Nil
+        TokenWithContext(Token.Keyword.Nil, TokenContext(0))
       )
     val result = DefaultParser.parse(tokens)
     expect(result == List(Right(Expression.Literal(null))))
   }
 
-  pureTest("primary rule should error for a token that is not handled") {
-    val token  = Token.Keyword.And
-    val tokens =
-      List(token)
-    val result = DefaultParser.parse(tokens)
-    expect(
-      result == List(Left(ParserError.UnmatchedTokenError("primary", 0, token)))
-    )
+  test("primary rule should error for a token that is not handled") {
+    forall(Gen.posNum[Int]) { line =>
+      val token  = Token.Keyword.And
+      val tokens =
+        List(TokenWithContext(token, TokenContext(line)))
+      val result = DefaultParser.parse(tokens)
+      expect(
+        result == List(
+          Left(ParserError.UnmatchedTokenError("primary", line, token))
+        )
+      )
+    }
   }
 
 end ParserSuite
