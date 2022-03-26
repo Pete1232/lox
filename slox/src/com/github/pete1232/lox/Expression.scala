@@ -21,7 +21,7 @@ object Expression:
   ) extends Expression
 
   object Literal:
-    implicit val showLiteral: Show[Literal] = Show.show(_.value.toString)
+    implicit def showLiteral: Show[Literal] = Show.show(_.value.toString)
 
   final case class Group(
       expression: Expression

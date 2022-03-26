@@ -2,7 +2,7 @@ package com.github.pete1232.lox
 
 import com.github.pete1232.lox.errors.ParserError
 
-sealed trait Parser:
+trait Parser:
   def parse(
       tokens: List[TokenWithContext]
   ): List[Either[ParserError, Expression]]

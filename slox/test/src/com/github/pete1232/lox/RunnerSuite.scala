@@ -15,7 +15,12 @@ object RunnerSuite extends SimpleIOSuite:
         source: String
     ): List[Either[errors.ScannerError, TokenWithContext]] = Nil
 
-  val runner = Runner(MockScanner)
+  object MockParser extends Parser:
+    def parse(
+        tokens: List[TokenWithContext]
+    ): List[Either[errors.ParserError, Expression]] = Nil
+
+  val runner = Runner(MockScanner, MockParser)
 
   test("error when the file is not found") {
     for exitCode <- runner.run(List("slox/test/resources/Missing.lox"))
@@ -40,7 +45,7 @@ object RunnerSuite extends SimpleIOSuite:
     def readLineWithCharset(charset: Charset): IO[String] = in
 
   def runnerWithFakeConsole(in: IO[String]) =
-    Runner(MockScanner)(FakeConsole(in))
+    Runner(MockScanner, MockParser)(FakeConsole(in))
 
   test("repl should exit with a success on EOF") {
     for exitCode <- runnerWithFakeConsole(IO.raiseError(new EOFException()))

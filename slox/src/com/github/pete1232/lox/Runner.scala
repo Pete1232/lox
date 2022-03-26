@@ -5,12 +5,15 @@ import scala.io.Source
 import java.io.EOFException
 import java.nio.file.{Files, NoSuchFileException, Path}
 
+import cats.data.EitherT
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.effect.kernel.Resource
 import cats.effect.std.Console
 import cats.implicits.*
 
-final case class Runner(scanner: Scanner)(implicit console: Console[IO]):
+final case class Runner(scanner: Scanner, parser: Parser)(implicit
+    console: Console[IO]
+):
 
   final def run(args: List[String]): IO[ExitCode] =
     args match
@@ -33,10 +36,17 @@ final case class Runner(scanner: Scanner)(implicit console: Console[IO]):
     yield result).recoverWith(ErrorHandler.repl)
 
   private def runScan(source: String): IO[ExitCode] =
-    // todo for now just printing the tokens
-    scanner
-      .scan(source)
-      .map(IO.println)
+    val result: EitherT[List, Throwable, Expression] =
+      for
+        token      <- EitherT(scanner.scan(source))
+        expression <- EitherT(parser.parse(List(token)))
+      yield expression
+
+    result.value
+      .map(_ match
+        case Right(v)    => IO.println(v)
+        case Left(error) => IO.println(error)
+      )
       .sequence
       .as(ExitCode.Success)
       .recoverWith(ErrorHandler.scanner)
@@ -57,3 +67,4 @@ final case class Runner(scanner: Scanner)(implicit console: Console[IO]):
         import scan.*
         IO.println(s"[line $lineNumber] Error: $message").as(ExitCode(65))
     }
+end Runner

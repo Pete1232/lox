@@ -12,7 +12,8 @@ import cats.implicits.*
 object Main extends IOApp:
 
   val scanner = DefaultScanner
-  val runner  = Runner(scanner)
+  val parser  = DefaultParser
+  val runner  = Runner(scanner, parser)
 
   final def run(args: List[String]): IO[ExitCode] =
     runner.run(args)
