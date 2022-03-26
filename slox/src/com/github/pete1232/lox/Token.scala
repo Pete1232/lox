@@ -8,6 +8,10 @@ sealed trait Token:
 
 final case class TokenWithContext(token: Token, context: TokenContext)
 
+object TokenWithContext:
+  implicit val showTokenWithContext: Show[TokenWithContext] =
+    Show.show(tc => Show[Token].show(tc.token))
+
 final case class TokenContext(lineCount: Int)
 
 object Token:

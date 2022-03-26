@@ -2,14 +2,18 @@ package com.github.pete1232.lox
 
 import com.github.pete1232.lox.errors.ParserError
 
+import cats.implicits.*
 import org.scalacheck.Gen
 import weaver.SimpleIOSuite
 import weaver.scalacheck.Checkers
 
 object ParserSuite extends SimpleIOSuite with Checkers:
 
+  private def simpleToken(token: Token): TokenWithContext =
+    TokenWithContext(token, TokenContext(0))
+
   private def simpleTokens(tokens: Token*): List[TokenWithContext] =
-    tokens.map(TokenWithContext(_, TokenContext(0))).toList
+    tokens.map(simpleToken).toList
 
   test("match a literal string") {
     forall(Gen.alphaNumStr) { stringLiteral =>
@@ -125,6 +129,48 @@ object ParserSuite extends SimpleIOSuite with Checkers:
         )
       )
     )
+  }
+
+  val literalNumberGen: Gen[TokenWithContext]     =
+    Gen.posNum[Double].map(n => simpleToken(Token.LiteralNumber(n.toString, n)))
+  val literalStringGen: Gen[TokenWithContext]     =
+    Gen.alphaNumStr.map(s => simpleToken(Token.LiteralString(s"\"$s\"", s)))
+  val literalBooleanGen: Gen[TokenWithContext]    =
+    Gen.oneOf(simpleTokens(Token.Keyword.False, Token.Keyword.True))
+  val primaryExpressionGen: Gen[TokenWithContext] =
+    Gen.oneOf(literalNumberGen, literalStringGen, literalBooleanGen)
+
+  test("parse a valid primary expression") {
+    forall(primaryExpressionGen) { primaryToken =>
+      val literalValue: Double | String | Boolean =
+        primaryToken.token match
+          case Token.LiteralNumber(_, l) => l
+          case Token.LiteralString(_, l) => l
+          case Token.Keyword.True        => true
+          case Token.Keyword.False       => false
+          case t                         => t.lexeme
+
+      val result = DefaultParser.parse(List(primaryToken))
+      expect(result.sequence.isRight)
+    }
+  }
+
+  val unaryExpressionGen: Gen[List[TokenWithContext]] =
+    for
+      operator <- Gen.oneOf(
+        simpleTokens(Token.SingleCharacter.Bang, Token.SingleCharacter.Minus)
+      )
+      right    <- Gen.oneOf(
+        unaryExpressionGen,
+        primaryExpressionGen.map(t => List(t)),
+      )
+    yield operator +: right
+
+  test("parse a valid unary expression") {
+    forall(unaryExpressionGen) { unaryToken =>
+      val result = DefaultParser.parse(unaryToken)
+      expect(result.sequence.isRight)
+    }
   }
 
 end ParserSuite
