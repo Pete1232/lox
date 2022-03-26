@@ -8,40 +8,32 @@ import weaver.scalacheck.Checkers
 
 object ParserSuite extends SimpleIOSuite with Checkers:
 
-  test("primary rule can match a literal string") {
+  private def simpleTokens(tokens: Token*): List[TokenWithContext] =
+    tokens.map(TokenWithContext(_, TokenContext(0))).toList
+
+  test("match a literal string") {
     forall(Gen.alphaNumStr) { stringLiteral =>
       val tokens =
-        List(
-          TokenWithContext(
-            Token.LiteralString(s"\"${stringLiteral}\"", stringLiteral),
-            TokenContext(0),
-          )
+        simpleTokens(
+          Token.LiteralString(s"\"${stringLiteral}\"", stringLiteral)
         )
       val result = DefaultParser.parse(tokens)
       expect(result == List(Right(Expression.Literal(stringLiteral))))
     }
   }
 
-  test("primary rule can match a literal number") {
+  test("match a literal number") {
     forall(Gen.double) { numberLiteral =>
       val tokens =
-        List(
-          TokenWithContext(
-            Token.LiteralNumber(numberLiteral.toString, numberLiteral),
-            TokenContext(0),
-          )
-        )
+        simpleTokens(Token.LiteralNumber(numberLiteral.toString, numberLiteral))
       val result = DefaultParser.parse(tokens)
       expect(result == List(Right(Expression.Literal(numberLiteral))))
     }
   }
 
-  pureTest("primary rule can match a boolean") {
+  pureTest("match a boolean") {
     val tokens =
-      List(
-        TokenWithContext(Token.Keyword.True, TokenContext(0)),
-        TokenWithContext(Token.Keyword.False, TokenContext(0)),
-      )
+      simpleTokens(Token.Keyword.True, Token.Keyword.False)
     val result = DefaultParser.parse(tokens)
     expect(
       result == List(
@@ -51,16 +43,14 @@ object ParserSuite extends SimpleIOSuite with Checkers:
     )
   }
 
-  pureTest("primary rule can match a nil value") {
+  pureTest("match a nil value") {
     val tokens =
-      List(
-        TokenWithContext(Token.Keyword.Nil, TokenContext(0))
-      )
+      simpleTokens(Token.Keyword.Nil)
     val result = DefaultParser.parse(tokens)
     expect(result == List(Right(Expression.Literal(null))))
   }
 
-  test("primary rule should error for a token that is not handled") {
+  test("error for a token that is not handled") {
     forall(Gen.posNum[Int]) { line =>
       val token  = Token.Keyword.And
       val tokens =
@@ -72,6 +62,21 @@ object ParserSuite extends SimpleIOSuite with Checkers:
         )
       )
     }
+  }
+
+  pureTest("match a unary character starting with !") {
+    val tokens = simpleTokens(
+      Token.SingleCharacter.Bang,
+      Token.Keyword.True,
+    )
+    val result = DefaultParser.parse(tokens)
+    expect(
+      result == List(
+        Right(
+          Expression.Unary(Token.SingleCharacter.Bang, Expression.Literal(true))
+        )
+      )
+    )
   }
 
 end ParserSuite

@@ -5,6 +5,7 @@ import scala.io.Source
 import java.io.EOFException
 import java.nio.file.{Files, NoSuchFileException, Path}
 
+import cats.Show
 import cats.data.EitherT
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.effect.kernel.Resource
@@ -36,18 +37,13 @@ final case class Runner(scanner: Scanner, parser: Parser)(implicit
     yield result).recoverWith(ErrorHandler.repl)
 
   private def runScan(source: String): IO[ExitCode] =
-    val result: EitherT[List, Throwable, Expression] =
+    val result =
       for
-        token      <- EitherT(scanner.scan(source))
-        expression <- EitherT(parser.parse(List(token)))
+        tokens     <- scanner.scan(source).sequence
+        expression <- parser.parse(tokens).sequence
       yield expression
 
-    result.value
-      .map(_ match
-        case Right(v)    => IO.println(v)
-        case Left(error) => IO.println(error)
-      )
-      .sequence
+    IO.println(result.map(_.map(Show[Expression].show)))
       .as(ExitCode.Success)
       .recoverWith(ErrorHandler.scanner)
 

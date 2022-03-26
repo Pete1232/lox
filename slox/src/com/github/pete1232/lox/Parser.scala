@@ -13,7 +13,38 @@ object DefaultParser extends Parser:
   def parse(
       tokens: List[TokenWithContext]
   ): List[Either[ParserError, Expression]] =
-    tokens.map(primary)
+    parseLoop(tokens)
+
+  @scala.annotation.tailrec
+  private def parseLoop(
+      tokensIn: List[TokenWithContext],
+      result: List[Either[ParserError, Expression]] = Nil,
+  ): List[Either[ParserError, Expression]] =
+    if tokensIn.isEmpty then result
+    else
+      val (expressionResult, remainingTokens) = unary(tokensIn)
+      parseLoop(remainingTokens, result :+ expressionResult)
+
+  private def unary(
+      tokens: List[TokenWithContext]
+  ): (Either[ParserError, Expression], List[TokenWithContext]) =
+    tokens.headOption match
+      case Some(tokenWithContext) =>
+        tokenWithContext.token match
+          case Token.SingleCharacter.Bang =>
+            unary(tokens.tail) match
+              case (Left(error), remainingTokens)       =>
+                (Left(error), remainingTokens)
+              case (Right(expression), remainingTokens) =>
+                (
+                  Right(
+                    Expression.Unary(Token.SingleCharacter.Bang, expression)
+                  ),
+                  remainingTokens,
+                )
+          case _ => (primary(tokenWithContext), tokens.tail)
+      case None                   =>
+        (Left(IncompleteExpression("unary")), tokens)
 
   private def primary(
       token: TokenWithContext
@@ -28,3 +59,4 @@ object DefaultParser extends Parser:
         Left(
           UnmatchedTokenError("primary", token.context.lineCount, token.token)
         )
+end DefaultParser
