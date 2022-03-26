@@ -79,4 +79,52 @@ object ParserSuite extends SimpleIOSuite with Checkers:
     )
   }
 
+  pureTest("match a unary character starting with -") {
+    val tokens = simpleTokens(
+      Token.SingleCharacter.Minus,
+      Token.LiteralNumber("123.45", 123.45),
+    )
+    val result = DefaultParser.parse(tokens)
+    expect(
+      result == List(
+        Right(
+          Expression.Unary(
+            Token.SingleCharacter.Minus,
+            Expression.Literal(123.45),
+          )
+        )
+      )
+    )
+  }
+
+  pureTest("match a unary character with nesting") {
+    val tokens = simpleTokens(
+      Token.SingleCharacter.Bang,
+      Token.SingleCharacter.Minus,
+      Token.SingleCharacter.Minus,
+      Token.SingleCharacter.Bang,
+      Token.Keyword.True,
+    )
+    val result = DefaultParser.parse(tokens)
+    expect(
+      result == List(
+        Right(
+          Expression.Unary(
+            Token.SingleCharacter.Bang,
+            Expression.Unary(
+              Token.SingleCharacter.Minus,
+              Expression.Unary(
+                Token.SingleCharacter.Minus,
+                Expression.Unary(
+                  Token.SingleCharacter.Bang,
+                  Expression.Literal(true),
+                ),
+              ),
+            ),
+          )
+        )
+      )
+    )
+  }
+
 end ParserSuite

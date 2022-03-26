@@ -31,14 +31,14 @@ object DefaultParser extends Parser:
     tokens.headOption match
       case Some(tokenWithContext) =>
         tokenWithContext.token match
-          case Token.SingleCharacter.Bang =>
+          case t @ (Token.SingleCharacter.Bang | Token.SingleCharacter.Minus) =>
             unary(tokens.tail) match
               case (Left(error), remainingTokens)       =>
                 (Left(error), remainingTokens)
               case (Right(expression), remainingTokens) =>
                 (
                   Right(
-                    Expression.Unary(Token.SingleCharacter.Bang, expression)
+                    Expression.Unary(t, expression)
                   ),
                   remainingTokens,
                 )

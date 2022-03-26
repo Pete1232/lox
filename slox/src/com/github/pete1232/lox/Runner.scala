@@ -43,9 +43,11 @@ final case class Runner(scanner: Scanner, parser: Parser)(implicit
         expression <- parser.parse(tokens).sequence
       yield expression
 
-    IO.println(result.map(_.map(Show[Expression].show)))
-      .as(ExitCode.Success)
-      .recoverWith(ErrorHandler.scanner)
+    (result match
+      case Left(err)          => IO.println(err).as(ExitCode.Error)
+      case Right(expressions) =>
+        expressions.map(IO.println).sequence.as(ExitCode.Success)
+    ).recoverWith(ErrorHandler.scanner)
 
   object ErrorHandler:
 
