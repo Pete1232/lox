@@ -22,8 +22,30 @@ object DefaultParser extends Parser:
   ): List[Either[ParserError, Expression]] =
     if tokensIn.isEmpty then result
     else
-      val (expressionResult, remainingTokens) = unary(tokensIn)
+      val (expressionResult, remainingTokens) = factor(tokensIn)
       parseLoop(remainingTokens, result :+ expressionResult)
+
+  private def factor(
+      tokens: List[TokenWithContext]
+  ): (Either[ParserError, Expression], List[TokenWithContext]) =
+    unary(tokens) match
+      case (Right(leftExpr), remainingTokens) =>
+        remainingTokens.headOption match
+          case Some(tokenWithContext) =>
+            tokenWithContext.token match
+              case operator @ (Token.SingleCharacter.Slash |
+                  Token.SingleCharacter.Star) =>
+                factor(remainingTokens.tail) match
+                  case (Left(error), remainingTokens)      =>
+                    (Left(error), remainingTokens)
+                  case (Right(rightExpr), remainingTokens) =>
+                    (
+                      Right(Expression.Binary(leftExpr, operator, rightExpr)),
+                      remainingTokens,
+                    )
+              case _ => (Right(leftExpr), remainingTokens)
+          case _                      => (Right(leftExpr), remainingTokens)
+      case (Left(err), remainingTokens)       => (Left(err), remainingTokens)
 
   private def unary(
       tokens: List[TokenWithContext]
@@ -42,7 +64,8 @@ object DefaultParser extends Parser:
                   ),
                   remainingTokens,
                 )
-          case _ => (primary(tokenWithContext), tokens.tail)
+          case _                                                              =>
+            (primary(tokenWithContext), tokens.tail)
       case None                   =>
         (Left(IncompleteExpression("unary")), tokens)
 

@@ -68,7 +68,7 @@ object ParserSuite extends SimpleIOSuite with Checkers:
     }
   }
 
-  pureTest("match a unary character starting with !") {
+  pureTest("match a unary expression starting with !") {
     val tokens = simpleTokens(
       Token.SingleCharacter.Bang,
       Token.Keyword.True,
@@ -83,7 +83,7 @@ object ParserSuite extends SimpleIOSuite with Checkers:
     )
   }
 
-  pureTest("match a unary character starting with -") {
+  pureTest("match a unary expression starting with -") {
     val tokens = simpleTokens(
       Token.SingleCharacter.Minus,
       Token.LiteralNumber("123.45", 123.45),
@@ -101,7 +101,7 @@ object ParserSuite extends SimpleIOSuite with Checkers:
     )
   }
 
-  pureTest("match a unary character with nesting") {
+  pureTest("unary should be right associative") {
     val tokens = simpleTokens(
       Token.SingleCharacter.Bang,
       Token.SingleCharacter.Minus,
@@ -131,6 +131,72 @@ object ParserSuite extends SimpleIOSuite with Checkers:
     )
   }
 
+  pureTest("match a factor expression with /") {
+    val tokens = simpleTokens(
+      Token.LiteralNumber("120", 120),
+      Token.SingleCharacter.Slash,
+      Token.LiteralNumber("2", 2),
+    )
+    val result = DefaultParser.parse(tokens)
+    expect(
+      result == List(
+        Right(
+          Expression.Binary(
+            Expression.Literal(120),
+            Token.SingleCharacter.Slash,
+            Expression.Literal(2),
+          )
+        )
+      )
+    )
+  }
+
+  pureTest("match a factor expression with *") {
+    val tokens = simpleTokens(
+      Token.LiteralNumber("30", 30),
+      Token.SingleCharacter.Star,
+      Token.LiteralNumber("2", 2),
+    )
+    val result = DefaultParser.parse(tokens)
+    expect(
+      result == List(
+        Right(
+          Expression.Binary(
+            Expression.Literal(30),
+            Token.SingleCharacter.Star,
+            Expression.Literal(2),
+          )
+        )
+      )
+    )
+  }
+
+  pureTest("factors should be left associative") {
+    val tokens = simpleTokens(
+      Token.LiteralNumber("30", 30),
+      Token.SingleCharacter.Star,
+      Token.LiteralNumber("2", 2),
+      Token.SingleCharacter.Slash,
+      Token.LiteralNumber("15", 15),
+    )
+    val result = DefaultParser.parse(tokens)
+    expect(
+      result == List(
+        Right(
+          Expression.Binary(
+            Expression.Binary(
+              Expression.Literal(30),
+              Token.SingleCharacter.Star,
+              Expression.Literal(2),
+            ),
+            Token.SingleCharacter.Slash,
+            Expression.Literal(15),
+          )
+        )
+      )
+    )
+  }
+
   val literalNumberGen: Gen[TokenWithContext]     =
     Gen.posNum[Double].map(n => simpleToken(Token.LiteralNumber(n.toString, n)))
   val literalStringGen: Gen[TokenWithContext]     =
@@ -142,14 +208,6 @@ object ParserSuite extends SimpleIOSuite with Checkers:
 
   test("parse a valid primary expression") {
     forall(primaryExpressionGen) { primaryToken =>
-      val literalValue: Double | String | Boolean =
-        primaryToken.token match
-          case Token.LiteralNumber(_, l) => l
-          case Token.LiteralString(_, l) => l
-          case Token.Keyword.True        => true
-          case Token.Keyword.False       => false
-          case t                         => t.lexeme
-
       val result = DefaultParser.parse(List(primaryToken))
       expect(result.sequence.isRight)
     }
@@ -167,8 +225,30 @@ object ParserSuite extends SimpleIOSuite with Checkers:
     yield operator +: right
 
   test("parse a valid unary expression") {
-    forall(unaryExpressionGen) { unaryToken =>
-      val result = DefaultParser.parse(unaryToken)
+    forall(unaryExpressionGen) { unaryTokens =>
+      val result = DefaultParser.parse(unaryTokens)
+      expect(result.sequence.isRight)
+    }
+  }
+
+  val factorExpressionGen: Gen[List[TokenWithContext]] =
+    val operatorAndUnaryGen =
+      for
+        operator <- Gen.oneOf(
+          simpleTokens(Token.SingleCharacter.Slash, Token.SingleCharacter.Star)
+        )
+        right    <- unaryExpressionGen
+      yield (operator, right)
+    for
+      start  <- unaryExpressionGen
+      repeat <- Gen.listOf(operatorAndUnaryGen)
+    yield repeat.flatMap { case (op, expression) =>
+      (start :+ op) ++ expression
+    }
+
+  test("parse a valid factor expression") {
+    forall(factorExpressionGen) { factorTokens =>
+      val result = DefaultParser.parse(factorTokens)
       expect(result.sequence.isRight)
     }
   }
