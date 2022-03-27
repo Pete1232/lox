@@ -30,22 +30,28 @@ object DefaultParser extends Parser:
   ): (Either[ParserError, Expression], List[TokenWithContext]) =
     unary(tokens) match
       case (Right(leftExpr), remainingTokens) =>
-        remainingTokens.headOption match
-          case Some(tokenWithContext) =>
-            tokenWithContext.token match
-              case operator @ (Token.SingleCharacter.Slash |
-                  Token.SingleCharacter.Star) =>
-                factor(remainingTokens.tail) match
-                  case (Left(error), remainingTokens)      =>
-                    (Left(error), remainingTokens)
-                  case (Right(rightExpr), remainingTokens) =>
-                    (
-                      Right(Expression.Binary(leftExpr, operator, rightExpr)),
-                      remainingTokens,
-                    )
-              case _ => (Right(leftExpr), remainingTokens)
-          case _                      => (Right(leftExpr), remainingTokens)
+        factorLoop(leftExpr, remainingTokens)
       case (Left(err), remainingTokens)       => (Left(err), remainingTokens)
+
+  private def factorLoop(
+      leftExpr: Expression,
+      tokens: List[TokenWithContext],
+  ): (Either[ParserError, Expression], List[TokenWithContext]) =
+    tokens.headOption match
+      case Some(tokenWithContext) =>
+        tokenWithContext.token match
+          case operator @ (Token.SingleCharacter.Slash |
+              Token.SingleCharacter.Star) =>
+            unary(tokens.tail) match
+              case (Left(error), remainingTokens)      =>
+                (Left(error), remainingTokens)
+              case (Right(rightExpr), remainingTokens) =>
+                factorLoop(
+                  Expression.Binary(leftExpr, operator, rightExpr),
+                  remainingTokens,
+                )
+          case _ => (Right(leftExpr), tokens)
+      case _                      => (Right(leftExpr), tokens)
 
   private def unary(
       tokens: List[TokenWithContext]
