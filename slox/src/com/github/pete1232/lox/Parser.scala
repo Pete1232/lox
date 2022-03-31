@@ -2,6 +2,8 @@ package com.github.pete1232.lox
 
 import com.github.pete1232.lox.errors.ParserError
 
+import scala.reflect.ClassTag
+
 trait Parser:
   def parse(
       tokens: List[TokenWithContext]
@@ -22,8 +24,36 @@ object DefaultParser extends Parser:
   ): List[Either[ParserError, Expression]] =
     if tokensIn.isEmpty then result
     else
-      val (expressionResult, remainingTokens) = factor(tokensIn)
+      val (expressionResult, remainingTokens) = term(tokensIn)
       parseLoop(remainingTokens, result :+ expressionResult)
+
+  private def term(
+      tokens: List[TokenWithContext]
+  ): (Either[ParserError, Expression], List[TokenWithContext]) =
+    factor(tokens) match
+      case (Right(leftExpr), remainingTokens) =>
+        termLoop(leftExpr, remainingTokens)
+      case (Left(err), remainingTokens)       => (Left(err), remainingTokens)
+
+  private def termLoop(
+      leftExpr: Expression,
+      tokens: List[TokenWithContext],
+  ): (Either[ParserError, Expression], List[TokenWithContext]) =
+    tokens.headOption match
+      case Some(tokenWithContext) =>
+        tokenWithContext.token match
+          case operator @ (Token.SingleCharacter.Minus |
+              Token.SingleCharacter.Plus) =>
+            factor(tokens.tail) match
+              case (Left(error), remainingTokens)      =>
+                (Left(error), remainingTokens)
+              case (Right(rightExpr), remainingTokens) =>
+                termLoop(
+                  Expression.Binary(leftExpr, operator, rightExpr),
+                  remainingTokens,
+                )
+          case _ => (Right(leftExpr), tokens)
+      case _                      => (Right(leftExpr), tokens)
 
   private def factor(
       tokens: List[TokenWithContext]

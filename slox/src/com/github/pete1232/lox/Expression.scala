@@ -43,11 +43,17 @@ object Expression:
       "(" + u.operator.lexeme + " " + Show[Expression].show(u.right) + ")"
     }
 
+  type BinaryOperator = Token.TwoCharacter | Token.SingleCharacter.Less.type |
+    Token.SingleCharacter.Greater.type | Token.SingleCharacter.Plus.type |
+    Token.SingleCharacter.Minus.type | Token.SingleCharacter.Star.type |
+    Token.SingleCharacter.Slash.type
+
   final case class Binary(
       left: Expression,
       operator: Token.TwoCharacter | Token.SingleCharacter.Less.type |
         Token.SingleCharacter.Greater.type | Token.SingleCharacter.Plus.type |
-        Token.SingleCharacter.Star.type | Token.SingleCharacter.Slash.type,
+        Token.SingleCharacter.Minus.type | Token.SingleCharacter.Star.type |
+        Token.SingleCharacter.Slash.type,
       right: Expression,
   ) extends Expression
 

@@ -131,45 +131,40 @@ object ParserSuite extends SimpleIOSuite with Checkers:
     )
   }
 
-  pureTest("match a factor expression with /") {
-    val tokens = simpleTokens(
-      Token.LiteralNumber("120", 120),
-      Token.SingleCharacter.Slash,
-      Token.LiteralNumber("2", 2),
-    )
-    val result = DefaultParser.parse(tokens)
-    expect(
-      result == List(
-        Right(
-          Expression.Binary(
-            Expression.Literal(120),
-            Token.SingleCharacter.Slash,
-            Expression.Literal(2),
+  private def tokenTest(
+      expressionType: String,
+      operator: Token.TwoCharacter | Token.SingleCharacter.Less.type |
+        Token.SingleCharacter.Greater.type | Token.SingleCharacter.Plus.type |
+        Token.SingleCharacter.Minus.type | Token.SingleCharacter.Star.type |
+        Token.SingleCharacter.Slash.type,
+  ) =
+    pureTest(s"match a $expressionType expression with ${operator.lexeme}") {
+      val tokens = simpleTokens(
+        Token.LiteralNumber("120", 120),
+        operator,
+        Token.LiteralNumber("2", 2),
+      )
+      val result = DefaultParser.parse(tokens)
+      expect(
+        result == List(
+          Right(
+            Expression.Binary(
+              Expression.Literal(120),
+              operator,
+              Expression.Literal(2),
+            )
           )
         )
       )
-    )
-  }
+    }
 
-  pureTest("match a factor expression with *") {
-    val tokens = simpleTokens(
-      Token.LiteralNumber("30", 30),
-      Token.SingleCharacter.Star,
-      Token.LiteralNumber("2", 2),
-    )
-    val result = DefaultParser.parse(tokens)
-    expect(
-      result == List(
-        Right(
-          Expression.Binary(
-            Expression.Literal(30),
-            Token.SingleCharacter.Star,
-            Expression.Literal(2),
-          )
-        )
-      )
-    )
-  }
+  tokenTest("factor", Token.SingleCharacter.Slash)
+
+  tokenTest("factor", Token.SingleCharacter.Star)
+
+  tokenTest("term", Token.SingleCharacter.Minus)
+
+  tokenTest("term", Token.SingleCharacter.Plus)
 
   pureTest("factors should be left associative") {
     val tokens = simpleTokens(
@@ -191,6 +186,58 @@ object ParserSuite extends SimpleIOSuite with Checkers:
             ),
             Token.SingleCharacter.Slash,
             Expression.Literal(15),
+          )
+        )
+      )
+    )
+  }
+
+  pureTest("terms should be left associative") {
+    val tokens = simpleTokens(
+      Token.LiteralNumber("30", 30),
+      Token.SingleCharacter.Plus,
+      Token.LiteralNumber("2", 2),
+      Token.SingleCharacter.Minus,
+      Token.LiteralNumber("15", 15),
+    )
+    val result = DefaultParser.parse(tokens)
+    expect(
+      result == List(
+        Right(
+          Expression.Binary(
+            Expression.Binary(
+              Expression.Literal(30),
+              Token.SingleCharacter.Plus,
+              Expression.Literal(2),
+            ),
+            Token.SingleCharacter.Minus,
+            Expression.Literal(15),
+          )
+        )
+      )
+    )
+  }
+
+  pureTest("a factor expression should take precedence over a term") {
+    val tokens = simpleTokens(
+      Token.LiteralNumber("6", 6),
+      Token.SingleCharacter.Slash,
+      Token.LiteralNumber("3", 3),
+      Token.SingleCharacter.Minus,
+      Token.LiteralNumber("1", 1),
+    )
+    val result = DefaultParser.parse(tokens)
+    expect(
+      result == List(
+        Right(
+          Expression.Binary(
+            Expression.Binary(
+              Expression.Literal(6),
+              Token.SingleCharacter.Slash,
+              Expression.Literal(3),
+            ),
+            Token.SingleCharacter.Minus,
+            Expression.Literal(1),
           )
         )
       )
@@ -242,13 +289,35 @@ object ParserSuite extends SimpleIOSuite with Checkers:
     for
       start  <- unaryExpressionGen
       repeat <- Gen.listOf(operatorAndUnaryGen)
-    yield repeat.flatMap { case (op, expression) =>
-      (start :+ op) ++ expression
+    yield repeat.foldLeft(start) { (l, r) =>
+      (l :+ r._1) ++ r._2
     }
 
   test("parse a valid factor expression") {
     forall(factorExpressionGen) { factorTokens =>
       val result = DefaultParser.parse(factorTokens)
+      expect(result.sequence.isRight)
+    }
+  }
+
+  val termExpressionGen: Gen[List[TokenWithContext]] =
+    val operatorAndFactorGen =
+      for
+        operator <- Gen.oneOf(
+          simpleTokens(Token.SingleCharacter.Plus, Token.SingleCharacter.Minus)
+        )
+        right    <- factorExpressionGen
+      yield (operator, right)
+    for
+      start  <- factorExpressionGen
+      repeat <- Gen.listOf(operatorAndFactorGen)
+    yield repeat.foldLeft(start) { (l, r) =>
+      (l :+ r._1) ++ r._2
+    }
+
+  test("parse a valid term expression") {
+    forall(termExpressionGen) { termTokens =>
+      val result = DefaultParser.parse(termTokens)
       expect(result.sequence.isRight)
     }
   }
