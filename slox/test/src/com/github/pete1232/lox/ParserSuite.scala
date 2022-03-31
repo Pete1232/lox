@@ -133,10 +133,7 @@ object ParserSuite extends SimpleIOSuite with Checkers:
 
   private def tokenTest(
       expressionType: String,
-      operator: Token.TwoCharacter | Token.SingleCharacter.Less.type |
-        Token.SingleCharacter.Greater.type | Token.SingleCharacter.Plus.type |
-        Token.SingleCharacter.Minus.type | Token.SingleCharacter.Star.type |
-        Token.SingleCharacter.Slash.type,
+      operator: Expression.BinaryOperator,
   ) =
     pureTest(s"match a $expressionType expression with ${operator.lexeme}") {
       val tokens = simpleTokens(
@@ -220,24 +217,24 @@ object ParserSuite extends SimpleIOSuite with Checkers:
 
   pureTest("a factor expression should take precedence over a term") {
     val tokens = simpleTokens(
+      Token.LiteralNumber("7", 7),
+      Token.SingleCharacter.Minus,
       Token.LiteralNumber("6", 6),
       Token.SingleCharacter.Slash,
       Token.LiteralNumber("3", 3),
-      Token.SingleCharacter.Minus,
-      Token.LiteralNumber("1", 1),
     )
     val result = DefaultParser.parse(tokens)
     expect(
       result == List(
         Right(
           Expression.Binary(
+            Expression.Literal(7),
+            Token.SingleCharacter.Minus,
             Expression.Binary(
               Expression.Literal(6),
               Token.SingleCharacter.Slash,
               Expression.Literal(3),
             ),
-            Token.SingleCharacter.Minus,
-            Expression.Literal(1),
           )
         )
       )

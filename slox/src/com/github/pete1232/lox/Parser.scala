@@ -27,61 +27,56 @@ object DefaultParser extends Parser:
       val (expressionResult, remainingTokens) = term(tokensIn)
       parseLoop(remainingTokens, result :+ expressionResult)
 
+  private def binaryExpression(
+      tokens: List[TokenWithContext],
+      matchingTokens: List[Expression.BinaryOperator],
+      production: List[TokenWithContext] => (
+          Either[ParserError, Expression],
+          List[TokenWithContext],
+      ),
+  ): (Either[ParserError, Expression], List[TokenWithContext]) =
+
+    def leftAssociativeLoop(
+        leftExpr: Expression,
+        tokens: List[TokenWithContext],
+    ): (Either[ParserError, Expression], List[TokenWithContext]) =
+      tokens.headOption match
+        case Some(tokenWithContext) =>
+          matchingTokens.find(_ == tokenWithContext.token) match
+            case None                => (Right(leftExpr), tokens)
+            case Some(operatorToken) =>
+              production(tokens.tail) match
+                case (Left(error), remainingTokens)      =>
+                  (Left(error), remainingTokens)
+                case (Right(rightExpr), remainingTokens) =>
+                  leftAssociativeLoop(
+                    Expression.Binary(leftExpr, operatorToken, rightExpr),
+                    remainingTokens,
+                  )
+        case _                      => (Right(leftExpr), tokens)
+
+    production(tokens) match
+      case (Right(leftExpr), remainingTokens) =>
+        leftAssociativeLoop(leftExpr, remainingTokens)
+      case (Left(err), remainingTokens)       => (Left(err), remainingTokens)
+
   private def term(
       tokens: List[TokenWithContext]
   ): (Either[ParserError, Expression], List[TokenWithContext]) =
-    factor(tokens) match
-      case (Right(leftExpr), remainingTokens) =>
-        termLoop(leftExpr, remainingTokens)
-      case (Left(err), remainingTokens)       => (Left(err), remainingTokens)
-
-  private def termLoop(
-      leftExpr: Expression,
-      tokens: List[TokenWithContext],
-  ): (Either[ParserError, Expression], List[TokenWithContext]) =
-    tokens.headOption match
-      case Some(tokenWithContext) =>
-        tokenWithContext.token match
-          case operator @ (Token.SingleCharacter.Minus |
-              Token.SingleCharacter.Plus) =>
-            factor(tokens.tail) match
-              case (Left(error), remainingTokens)      =>
-                (Left(error), remainingTokens)
-              case (Right(rightExpr), remainingTokens) =>
-                termLoop(
-                  Expression.Binary(leftExpr, operator, rightExpr),
-                  remainingTokens,
-                )
-          case _ => (Right(leftExpr), tokens)
-      case _                      => (Right(leftExpr), tokens)
+    binaryExpression(
+      tokens,
+      List(Token.SingleCharacter.Minus, Token.SingleCharacter.Plus),
+      factor,
+    )
 
   private def factor(
       tokens: List[TokenWithContext]
   ): (Either[ParserError, Expression], List[TokenWithContext]) =
-    unary(tokens) match
-      case (Right(leftExpr), remainingTokens) =>
-        factorLoop(leftExpr, remainingTokens)
-      case (Left(err), remainingTokens)       => (Left(err), remainingTokens)
-
-  private def factorLoop(
-      leftExpr: Expression,
-      tokens: List[TokenWithContext],
-  ): (Either[ParserError, Expression], List[TokenWithContext]) =
-    tokens.headOption match
-      case Some(tokenWithContext) =>
-        tokenWithContext.token match
-          case operator @ (Token.SingleCharacter.Slash |
-              Token.SingleCharacter.Star) =>
-            unary(tokens.tail) match
-              case (Left(error), remainingTokens)      =>
-                (Left(error), remainingTokens)
-              case (Right(rightExpr), remainingTokens) =>
-                factorLoop(
-                  Expression.Binary(leftExpr, operator, rightExpr),
-                  remainingTokens,
-                )
-          case _ => (Right(leftExpr), tokens)
-      case _                      => (Right(leftExpr), tokens)
+    binaryExpression(
+      tokens,
+      List(Token.SingleCharacter.Star, Token.SingleCharacter.Slash),
+      unary,
+    )
 
   private def unary(
       tokens: List[TokenWithContext]
