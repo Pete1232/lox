@@ -24,7 +24,7 @@ object DefaultParser extends Parser:
   ): List[Either[ParserError, Expression]] =
     if tokensIn.isEmpty then result
     else
-      val (expressionResult, remainingTokens) = comparison(tokensIn)
+      val (expressionResult, remainingTokens) = equality(tokensIn)
       parseLoop(remainingTokens, result :+ expressionResult)
 
   private def binaryExpression(
@@ -36,6 +36,7 @@ object DefaultParser extends Parser:
       ),
   ): (Either[ParserError, Expression], List[TokenWithContext]) =
 
+    @scala.annotation.tailrec
     def leftAssociativeLoop(
         leftExpr: Expression,
         tokens: List[TokenWithContext],
@@ -59,6 +60,18 @@ object DefaultParser extends Parser:
       case (Right(leftExpr), remainingTokens) =>
         leftAssociativeLoop(leftExpr, remainingTokens)
       case (Left(err), remainingTokens)       => (Left(err), remainingTokens)
+
+  private def equality(
+      tokens: List[TokenWithContext]
+  ): (Either[ParserError, Expression], List[TokenWithContext]) =
+    binaryExpression(
+      tokens,
+      List(
+        Token.TwoCharacter.EqualEqual,
+        Token.TwoCharacter.BangEqual,
+      ),
+      comparison,
+    )
 
   private def comparison(
       tokens: List[TokenWithContext]

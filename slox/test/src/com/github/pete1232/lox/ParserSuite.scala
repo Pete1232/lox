@@ -175,6 +175,10 @@ object ParserSuite extends SimpleIOSuite with Checkers:
 
   tokenTest("comparison", Token.TwoCharacter.LessEqual)
 
+  tokenTest("equality", Token.TwoCharacter.EqualEqual)
+
+  tokenTest("equality", Token.TwoCharacter.BangEqual)
+
   pureTest("factors should be left associative") {
     val tokens = simpleTokens(
       Token.LiteralNumber("30", 30),
@@ -265,6 +269,32 @@ object ParserSuite extends SimpleIOSuite with Checkers:
     )
   }
 
+  pureTest("equalities should be left associative") {
+    val tokens = simpleTokens(
+      Token.LiteralNumber("30", 30),
+      Token.TwoCharacter.EqualEqual,
+      Token.LiteralNumber("2", 2),
+      Token.TwoCharacter.BangEqual,
+      Token.LiteralNumber("15", 15),
+    )
+    val result = DefaultParser.parse(tokens)
+    expect(
+      result == List(
+        Right(
+          Expression.Binary(
+            Expression.Binary(
+              Expression.Literal(30),
+              Token.TwoCharacter.EqualEqual,
+              Expression.Literal(2),
+            ),
+            Token.TwoCharacter.BangEqual,
+            Expression.Literal(15),
+          )
+        )
+      )
+    )
+  }
+
   pureTest("a factor expression should take precedence over a term") {
     val tokens = simpleTokens(
       Token.LiteralNumber("7", 7),
@@ -309,6 +339,32 @@ object ParserSuite extends SimpleIOSuite with Checkers:
             Expression.Binary(
               Expression.Literal(6),
               Token.SingleCharacter.Plus,
+              Expression.Literal(3),
+            ),
+          )
+        )
+      )
+    )
+  }
+
+  pureTest("a comparison expression should take precedence over an equality") {
+    val tokens = simpleTokens(
+      Token.LiteralNumber("7", 7),
+      Token.TwoCharacter.EqualEqual,
+      Token.LiteralNumber("6", 6),
+      Token.SingleCharacter.Greater,
+      Token.LiteralNumber("3", 3),
+    )
+    val result = DefaultParser.parse(tokens)
+    expect(
+      result == List(
+        Right(
+          Expression.Binary(
+            Expression.Literal(7),
+            Token.TwoCharacter.EqualEqual,
+            Expression.Binary(
+              Expression.Literal(6),
+              Token.SingleCharacter.Greater,
               Expression.Literal(3),
             ),
           )
@@ -417,6 +473,31 @@ object ParserSuite extends SimpleIOSuite with Checkers:
 
   test("parse a valid comparison expression") {
     forall(comparisonExpressionGen) { tokens =>
+      val result = DefaultParser.parse(tokens)
+      expect(result.sequence.isRight)
+    }
+  }
+
+  val equalityExpressionGen: Gen[List[TokenWithContext]] =
+    val equalityAndFactorGen =
+      for
+        operator <- Gen.oneOf(
+          simpleTokens(
+            Token.TwoCharacter.BangEqual,
+            Token.TwoCharacter.EqualEqual,
+          )
+        )
+        right    <- comparisonExpressionGen
+      yield (operator, right)
+    for
+      start  <- comparisonExpressionGen
+      repeat <- Gen.listOf(equalityAndFactorGen)
+    yield repeat.foldLeft(start) { (l, r) =>
+      (l :+ r._1) ++ r._2
+    }
+
+  test("parse a valid equality expression") {
+    forall(equalityExpressionGen) { tokens =>
       val result = DefaultParser.parse(tokens)
       expect(result.sequence.isRight)
     }
