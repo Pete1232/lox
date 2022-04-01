@@ -159,7 +159,7 @@ object DefaultParser extends Parser:
                   Left(
                     UnclosedGroupError(tokens.head.context.lineCount)
                   ),
-                  remainingTokens.tail,
+                  remainingTokens,
                 )
       case _                               =>
         (

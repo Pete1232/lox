@@ -242,6 +242,35 @@ object ParserSuite extends SimpleIOSuite with Checkers:
     )
   }
 
+  pureTest("error when an expression is just opened") {
+    val tokens =
+      simpleTokens(
+        Token.SingleCharacter.LeftParen
+      )
+    val result = DefaultParser.parse(tokens)
+    expect(
+      result == List(
+        Left(ParserError.IncompleteExpression("unary"))
+      )
+    )
+  }
+
+  pureTest("error when an expression is unclosed") {
+    val tokens =
+      simpleTokens(
+        Token.SingleCharacter.LeftParen,
+        Token.LiteralNumber("2", 2),
+        Token.TwoCharacter.BangEqual,
+        Token.LiteralString("\"2\"", "2"),
+      )
+    val result = DefaultParser.parse(tokens)
+    expect(
+      result == List(
+        Left(ParserError.UnclosedGroupError(0))
+      )
+    )
+  }
+
   pureTest("factors should be left associative") {
     val tokens = simpleTokens(
       Token.LiteralNumber("30", 30),
