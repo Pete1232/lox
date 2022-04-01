@@ -179,6 +179,69 @@ object ParserSuite extends SimpleIOSuite with Checkers:
 
   tokenTest("equality", Token.TwoCharacter.BangEqual)
 
+  pureTest("match a primary expression within brackets") {
+    val tokens =
+      simpleTokens(
+        Token.SingleCharacter.LeftParen,
+        Token.Keyword.True,
+        Token.SingleCharacter.RightParen,
+      )
+    val result = DefaultParser.parse(tokens)
+    expect(
+      result == List(
+        Right(Expression.Group(Expression.Literal(true)))
+      )
+    )
+  }
+
+  pureTest("match a unary expression within brackets") {
+    val tokens =
+      simpleTokens(
+        Token.SingleCharacter.LeftParen,
+        Token.SingleCharacter.Bang,
+        Token.Keyword.False,
+        Token.SingleCharacter.RightParen,
+      )
+    val result = DefaultParser.parse(tokens)
+    expect(
+      result == List(
+        Right(
+          Expression.Group(
+            Expression.Unary(
+              Token.SingleCharacter.Bang,
+              Expression.Literal(false),
+            )
+          )
+        )
+      )
+    )
+  }
+
+  pureTest("match a binary expression within brackets") {
+    val tokens =
+      simpleTokens(
+        Token.SingleCharacter.LeftParen,
+        Token.LiteralNumber("2", 2),
+        Token.TwoCharacter.BangEqual,
+        Token.LiteralString("\"2\"", "2"),
+        Token.SingleCharacter.RightParen,
+      )
+    val result = DefaultParser.parse(tokens)
+    expect(
+      result == List(
+        Right(
+          Expression.Group(
+            Expression.Binary(
+              Expression.Literal(2),
+              Token.TwoCharacter.BangEqual,
+              Expression.Literal("2"),
+            )
+          )
+        )
+      )
+    )
+  }
+
   pureTest("factors should be left associative") {
     val tokens = simpleTokens(
       Token.LiteralNumber("30", 30),
@@ -498,6 +561,20 @@ object ParserSuite extends SimpleIOSuite with Checkers:
 
   test("parse a valid equality expression") {
     forall(equalityExpressionGen) { tokens =>
+      val result = DefaultParser.parse(tokens)
+      expect(result.sequence.isRight)
+    }
+  }
+
+  val primaryGroupExpressionGen: Gen[List[TokenWithContext]] =
+    equalityExpressionGen.map(expr =>
+      simpleToken(Token.SingleCharacter.LeftParen) +: expr :+ simpleToken(
+        Token.SingleCharacter.RightParen
+      )
+    )
+
+  test("parse a valid primary group expression") {
+    forall(primaryGroupExpressionGen) { tokens =>
       val result = DefaultParser.parse(tokens)
       expect(result.sequence.isRight)
     }

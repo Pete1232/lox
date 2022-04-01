@@ -15,3 +15,8 @@ enum ParserError(message: String) extends Throwable:
       extends ParserError(
         "All tokens were consumed before the expression was completed."
       )
+
+  case UnclosedGroupError(line: Int)
+      extends ParserError(
+        s"[line: $line] Expect ')' to close an expression."
+      )

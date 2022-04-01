@@ -4,6 +4,8 @@ import com.github.pete1232.lox.errors.ParserError
 
 import scala.reflect.ClassTag
 
+import cats.data.NonEmptyList
+
 trait Parser:
   def parse(
       tokens: List[TokenWithContext]
@@ -24,7 +26,7 @@ object DefaultParser extends Parser:
   ): List[Either[ParserError, Expression]] =
     if tokensIn.isEmpty then result
     else
-      val (expressionResult, remainingTokens) = equality(tokensIn)
+      val (expressionResult, remainingTokens) = expression(tokensIn)
       parseLoop(remainingTokens, result :+ expressionResult)
 
   private def binaryExpression(
@@ -60,6 +62,11 @@ object DefaultParser extends Parser:
       case (Right(leftExpr), remainingTokens) =>
         leftAssociativeLoop(leftExpr, remainingTokens)
       case (Left(err), remainingTokens)       => (Left(err), remainingTokens)
+
+  private def expression(
+      tokens: List[TokenWithContext]
+  ): (Either[ParserError, Expression], List[TokenWithContext]) =
+    equality(tokens)
 
   private def equality(
       tokens: List[TokenWithContext]
@@ -123,21 +130,46 @@ object DefaultParser extends Parser:
                   remainingTokens,
                 )
           case _                                                              =>
-            (primary(tokenWithContext), tokens.tail)
+            primary(NonEmptyList(tokenWithContext, tokens.tail))
       case None                   =>
         (Left(IncompleteExpression("unary")), tokens)
 
   private def primary(
-      token: TokenWithContext
-  ): Either[ParserError, Expression] =
-    token.token match
-      case Token.Keyword.False       => Right(Expression.Literal(false))
-      case Token.Keyword.True        => Right(Expression.Literal(true))
-      case Token.Keyword.Nil         => Right(Expression.Literal(null))
-      case Token.LiteralNumber(_, n) => Right(Expression.Literal(n))
-      case Token.LiteralString(_, s) => Right(Expression.Literal(s))
-      case _                         =>
-        Left(
-          UnmatchedTokenError("primary", token.context.lineCount, token.token)
+      tokens: NonEmptyList[TokenWithContext]
+  ): (Either[ParserError, Expression], List[TokenWithContext]) =
+    tokens.head.token match
+      case Token.Keyword.False =>
+        (Right(Expression.Literal(false)), tokens.tail)
+      case Token.Keyword.True  => (Right(Expression.Literal(true)), tokens.tail)
+      case Token.Keyword.Nil   => (Right(Expression.Literal(null)), tokens.tail)
+      case Token.LiteralNumber(_, n)       =>
+        (Right(Expression.Literal(n)), tokens.tail)
+      case Token.LiteralString(_, s)       =>
+        (Right(Expression.Literal(s)), tokens.tail)
+      case Token.SingleCharacter.LeftParen =>
+        val (expressionResult, remainingTokens) = expression(tokens.tail)
+        expressionResult match
+          case Left(error) => (expressionResult, remainingTokens)
+          case Right(expr) =>
+            remainingTokens.headOption.map(_.token) match
+              case Some(Token.SingleCharacter.RightParen) =>
+                (Right(Expression.Group(expr)), remainingTokens.tail)
+              case _                                      =>
+                (
+                  Left(
+                    UnclosedGroupError(tokens.head.context.lineCount)
+                  ),
+                  remainingTokens.tail,
+                )
+      case _                               =>
+        (
+          Left(
+            UnmatchedTokenError(
+              "primary",
+              tokens.head.context.lineCount,
+              tokens.head.token,
+            )
+          ),
+          tokens.tail,
         )
 end DefaultParser
