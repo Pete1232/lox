@@ -5,9 +5,13 @@ import com.github.pete1232.lox.errors.ParserError
 import cats.implicits.*
 import org.scalacheck.Gen
 import weaver.SimpleIOSuite
+import weaver.scalacheck.CheckConfig
 import weaver.scalacheck.Checkers
 
 object ParserSuite extends SimpleIOSuite with Checkers:
+
+  // large generated expressions can get out of hand quickly
+  override val checkConfig = CheckConfig.default.copy(maximumGeneratorSize = 10)
 
   private def simpleToken(token: Token): TokenWithContext =
     TokenWithContext(token, TokenContext(0))
@@ -163,6 +167,14 @@ object ParserSuite extends SimpleIOSuite with Checkers:
 
   tokenTest("term", Token.SingleCharacter.Plus)
 
+  tokenTest("comparison", Token.SingleCharacter.Greater)
+
+  tokenTest("comparison", Token.TwoCharacter.GreaterEqual)
+
+  tokenTest("comparison", Token.SingleCharacter.Less)
+
+  tokenTest("comparison", Token.TwoCharacter.LessEqual)
+
   pureTest("factors should be left associative") {
     val tokens = simpleTokens(
       Token.LiteralNumber("30", 30),
@@ -215,6 +227,44 @@ object ParserSuite extends SimpleIOSuite with Checkers:
     )
   }
 
+  pureTest("comparisons should be left associative") {
+    val tokens = simpleTokens(
+      Token.LiteralNumber("1", 1),
+      Token.SingleCharacter.Greater,
+      Token.LiteralNumber("2", 2),
+      Token.SingleCharacter.Less,
+      Token.LiteralNumber("3", 3),
+      Token.TwoCharacter.GreaterEqual,
+      Token.LiteralNumber("4", 4),
+      Token.TwoCharacter.LessEqual,
+      Token.LiteralNumber("5", 5),
+    )
+    val result = DefaultParser.parse(tokens)
+    expect(
+      result == List(
+        Right(
+          Expression.Binary(
+            Expression.Binary(
+              Expression.Binary(
+                Expression.Binary(
+                  Expression.Literal(1),
+                  Token.SingleCharacter.Greater,
+                  Expression.Literal(2),
+                ),
+                Token.SingleCharacter.Less,
+                Expression.Literal(3),
+              ),
+              Token.TwoCharacter.GreaterEqual,
+              Expression.Literal(4),
+            ),
+            Token.TwoCharacter.LessEqual,
+            Expression.Literal(5),
+          )
+        )
+      )
+    )
+  }
+
   pureTest("a factor expression should take precedence over a term") {
     val tokens = simpleTokens(
       Token.LiteralNumber("7", 7),
@@ -233,6 +283,32 @@ object ParserSuite extends SimpleIOSuite with Checkers:
             Expression.Binary(
               Expression.Literal(6),
               Token.SingleCharacter.Slash,
+              Expression.Literal(3),
+            ),
+          )
+        )
+      )
+    )
+  }
+
+  pureTest("a term expression should take precedence over a comparison") {
+    val tokens = simpleTokens(
+      Token.LiteralNumber("7", 7),
+      Token.SingleCharacter.Greater,
+      Token.LiteralNumber("6", 6),
+      Token.SingleCharacter.Plus,
+      Token.LiteralNumber("3", 3),
+    )
+    val result = DefaultParser.parse(tokens)
+    expect(
+      result == List(
+        Right(
+          Expression.Binary(
+            Expression.Literal(7),
+            Token.SingleCharacter.Greater,
+            Expression.Binary(
+              Expression.Literal(6),
+              Token.SingleCharacter.Plus,
               Expression.Literal(3),
             ),
           )
@@ -315,6 +391,33 @@ object ParserSuite extends SimpleIOSuite with Checkers:
   test("parse a valid term expression") {
     forall(termExpressionGen) { termTokens =>
       val result = DefaultParser.parse(termTokens)
+      expect(result.sequence.isRight)
+    }
+  }
+
+  val comparisonExpressionGen: Gen[List[TokenWithContext]] =
+    val comparisonAndFactorGen =
+      for
+        operator <- Gen.oneOf(
+          simpleTokens(
+            Token.SingleCharacter.Greater,
+            Token.TwoCharacter.GreaterEqual,
+            Token.SingleCharacter.Less,
+            Token.TwoCharacter.LessEqual,
+          )
+        )
+        right    <- termExpressionGen
+      yield (operator, right)
+    for
+      start  <- termExpressionGen
+      repeat <- Gen.listOf(comparisonAndFactorGen)
+    yield repeat.foldLeft(start) { (l, r) =>
+      (l :+ r._1) ++ r._2
+    }
+
+  test("parse a valid comparison expression") {
+    forall(comparisonExpressionGen) { tokens =>
+      val result = DefaultParser.parse(tokens)
       expect(result.sequence.isRight)
     }
   }

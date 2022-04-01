@@ -24,7 +24,7 @@ object DefaultParser extends Parser:
   ): List[Either[ParserError, Expression]] =
     if tokensIn.isEmpty then result
     else
-      val (expressionResult, remainingTokens) = term(tokensIn)
+      val (expressionResult, remainingTokens) = comparison(tokensIn)
       parseLoop(remainingTokens, result :+ expressionResult)
 
   private def binaryExpression(
@@ -59,6 +59,20 @@ object DefaultParser extends Parser:
       case (Right(leftExpr), remainingTokens) =>
         leftAssociativeLoop(leftExpr, remainingTokens)
       case (Left(err), remainingTokens)       => (Left(err), remainingTokens)
+
+  private def comparison(
+      tokens: List[TokenWithContext]
+  ): (Either[ParserError, Expression], List[TokenWithContext]) =
+    binaryExpression(
+      tokens,
+      List(
+        Token.SingleCharacter.Greater,
+        Token.TwoCharacter.GreaterEqual,
+        Token.SingleCharacter.Less,
+        Token.TwoCharacter.LessEqual,
+      ),
+      term,
+    )
 
   private def term(
       tokens: List[TokenWithContext]
