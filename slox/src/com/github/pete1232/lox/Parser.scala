@@ -14,6 +14,7 @@ trait Parser:
 object DefaultParser extends Parser:
 
   import ParserError.*
+
   def parse(
       tokens: List[TokenWithContext]
   ): List[Either[ParserError, Expression]] =
@@ -27,7 +28,10 @@ object DefaultParser extends Parser:
     if tokensIn.isEmpty then result
     else
       val (expressionResult, remainingTokens) = expression(tokensIn)
-      parseLoop(remainingTokens, result :+ expressionResult)
+      val tokensToParse                       =
+        if (expressionResult.isRight) then remainingTokens
+        else synchronize(remainingTokens)
+      parseLoop(tokensToParse, result :+ expressionResult)
 
   private def binaryExpression(
       tokens: List[TokenWithContext],
@@ -172,4 +176,19 @@ object DefaultParser extends Parser:
           ),
           tokens.tail,
         )
+
+  private def synchronize(
+      tokens: List[TokenWithContext]
+  ): List[TokenWithContext] =
+    import Token.Keyword.*
+    tokens.headOption match
+      case Some(tokenWithContext) =>
+        if (tokenWithContext.token == Token.SingleCharacter.Semicolon) then
+          tokens.tail
+        else if List(Class, For, Fun, If, Print, Return, Var, While)
+            .contains(tokenWithContext.token)
+        then tokens
+        else synchronize(tokens.tail)
+      case None                   => List.empty
+
 end DefaultParser

@@ -465,6 +465,67 @@ object ParserSuite extends SimpleIOSuite with Checkers:
     )
   }
 
+  pureTest("if there is an error, continue parsing after a semicolon") {
+    val tokens = simpleTokens(
+      Token.LiteralNumber("1", 1),
+      Token.SingleCharacter.Plus,
+      Token.SingleCharacter.Comma,
+      Token.SingleCharacter.Semicolon,
+      Token.LiteralNumber("5", 5),
+    )
+    val result = DefaultParser.parse(tokens)
+    expect(
+      result == List(
+        Left(
+          ParserError
+            .UnmatchedTokenError("primary", 0, Token.SingleCharacter.Comma)
+        ),
+        Right(
+          Expression.Literal(5)
+        ),
+      )
+    )
+  }
+
+  val statementStartGen: Gen[Token] =
+    import Token.Keyword.*
+    Gen.oneOf(Class, For, Fun, If, Print, Return, Var, While)
+
+  test(
+    "if there is an error, continue parsing from a keyword that begins a statement"
+  ) {
+    forall(statementStartGen) { statementToken =>
+      val tokens = simpleTokens(
+        Token.LiteralNumber("1", 1),
+        Token.SingleCharacter.Plus,
+        Token.SingleCharacter.Comma,
+        Token.LiteralNumber("2", 2),
+        statementToken,
+        Token.LiteralNumber("3", 3),
+        Token.SingleCharacter.Semicolon,
+        Token.LiteralNumber("5", 5),
+      )
+      val result = DefaultParser.parse(tokens)
+      expect(
+        result == List(
+          Left(
+            ParserError
+              .UnmatchedTokenError("primary", 0, Token.SingleCharacter.Comma)
+          ),
+          // todo eventually this will be parsed properly, for now just expect
+          // to skip to the keyword and fail
+          Left(
+            ParserError
+              .UnmatchedTokenError("primary", 0, statementToken)
+          ),
+          Right(
+            Expression.Literal(5)
+          ),
+        )
+      )
+    }
+  }
+
   val literalNumberGen: Gen[TokenWithContext]     =
     Gen.posNum[Double].map(n => simpleToken(Token.LiteralNumber(n.toString, n)))
   val literalStringGen: Gen[TokenWithContext]     =

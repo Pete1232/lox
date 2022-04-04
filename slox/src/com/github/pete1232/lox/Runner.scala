@@ -8,7 +8,6 @@ import java.nio.file.{Files, NoSuchFileException, Path}
 import cats.Show
 import cats.data.EitherT
 import cats.effect.{ExitCode, IO, IOApp}
-import cats.effect.kernel.Resource
 import cats.effect.std.Console
 import cats.implicits.*
 
@@ -44,10 +43,10 @@ final case class Runner(scanner: Scanner, parser: Parser)(implicit
       yield expression
 
     (result match
-      case Left(err)          => IO.println(err).as(ExitCode.Error)
+      case Left(err)          => ErrorHandler.scanner(err)
       case Right(expressions) =>
         expressions.map(IO.println).sequence.as(ExitCode.Success)
-    ).recoverWith(ErrorHandler.scanner)
+    )
 
   object ErrorHandler:
 
@@ -64,5 +63,8 @@ final case class Runner(scanner: Scanner, parser: Parser)(implicit
       case scan: errors.ScannerError =>
         import scan.*
         IO.println(s"[line $lineNumber] Error: $message").as(ExitCode(65))
+      case parse: errors.ParserError =>
+        import parse.*
+        IO.println(s"[line $lineNumber] Error: $message").as(ExitCode.Error)
     }
 end Runner
