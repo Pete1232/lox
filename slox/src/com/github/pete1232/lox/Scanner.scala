@@ -126,13 +126,14 @@ object DefaultScanner extends Scanner:
         case Some(c)                   =>
           if c >= '0' && c <= '9' then
             consumeDigits(remaining.tail, result + c, hasDecimalPoint)
-          else
+          else if c.isAlpha then
             Left(
               ScannerError.LiteralNumberBadCharacter(
                 currentLine,
                 charactersToWhitespace,
               )
             )
+          else Right(result)
 
     def consumeComment(
         remaining: String,
@@ -197,7 +198,10 @@ object DefaultScanner extends Scanner:
                         lines = stringValue.count(_ == '\n'),
                       )
                     )
-                  case _ => twoCharacterResult(char.toString + char2.toString)
+                  case _                   =>
+                    twoCharacterResult(char.toString + char2.toString) match
+                      case Right(result) => Right(result)
+                      case Left(error)   => singleCharacterResult(char)
           case _ if char.isDigit =>
             consumeDigits(remainingInput).map(lexeme =>
               ValidToken(

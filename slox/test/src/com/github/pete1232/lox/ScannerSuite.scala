@@ -49,12 +49,13 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     val hashResult = DefaultScanner.scan("!#")
     expect(
       hashResult == List(
+        Right(TokenWithContext(Token.SingleCharacter.Bang, TokenContext(0))),
         Left(
-          ScannerError.InvalidSecondCharacter(
+          ScannerError.InvalidFirstCharacter(
             0,
-            "!#",
+            "#",
           )
-        )
+        ),
       )
     )
   }
@@ -129,16 +130,22 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
             "%",
           )
         ),
-        Left(
-          ScannerError.InvalidSecondCharacter(
-            0,
-            "/@-",
-          )
+        Right(
+          TokenWithContext(Token.SingleCharacter.Slash, TokenContext(0))
         ),
         Left(
-          ScannerError.InvalidSecondCharacter(
+          ScannerError.InvalidFirstCharacter(
             0,
-            "!£",
+            "@-",
+          )
+        ),
+        Right(
+          TokenWithContext(Token.SingleCharacter.Bang, TokenContext(0))
+        ),
+        Left(
+          ScannerError.InvalidFirstCharacter(
+            0,
+            "£",
           )
         ),
       )
@@ -157,7 +164,7 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     )
   }
 
-  pureTest("error if no space is left between valid two character tokens") {
+  pureTest("error if a two character token is followed by an invalid one") {
     import Token.SingleCharacter.*
     import Token.TwoCharacter.*
 
@@ -391,7 +398,7 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     import Token.TwoCharacter.*
 
     val result =
-      DefaultScanner.scan("_test !a; *a* !=a, 123a5 123.4.5 test!id var~if")
+      DefaultScanner.scan("_test !@1 *a* !=a, 123a5 123.4.5 test!id var~if")
 
     expect(
       result == List(
@@ -401,10 +408,13 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
             "_test",
           )
         ),
+        Right(
+          TokenWithContext(Token.SingleCharacter.Bang, TokenContext(0))
+        ),
         Left(
-          ScannerError.InvalidSecondCharacter(
+          ScannerError.InvalidFirstCharacter(
             0,
-            "!a;",
+            "@1",
           )
         ),
         Right(
@@ -493,6 +503,41 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
         Left(
           ScannerError.UnclosedComment(0, "/* test")
         )
+      )
+    )
+  }
+
+  pureTest(
+    "parse a single character token that can also start a two character"
+  ) {
+    val result = DefaultScanner.scan("1<3")
+    expect(
+      result == List(
+        Right(TokenWithContext(Token.LiteralNumber("1", 1), TokenContext(0))),
+        Right(TokenWithContext(Token.SingleCharacter.Less, TokenContext(0))),
+        Right(TokenWithContext(Token.LiteralNumber("3", 3), TokenContext(0))),
+      )
+    )
+  }
+
+  pureTest("allow simple numeric expressions with no spacing") {
+    val result = DefaultScanner.scan("1!=2<3")
+    expect(
+      result == List(
+        Right(TokenWithContext(Token.LiteralNumber("1", 1), TokenContext(0))),
+        Right(TokenWithContext(Token.TwoCharacter.BangEqual, TokenContext(0))),
+        Right(TokenWithContext(Token.LiteralNumber("2", 2), TokenContext(0))),
+        Right(TokenWithContext(Token.SingleCharacter.Less, TokenContext(0))),
+        Right(TokenWithContext(Token.LiteralNumber("3", 3), TokenContext(0))),
+      )
+    )
+  }
+
+  pureTest("do not allow a numeric literal with an alpha-numeric character") {
+    val result = DefaultScanner.scan("123abc")
+    expect(
+      result == List(
+        Left(ScannerError.LiteralNumberBadCharacter(0, "123abc"))
       )
     )
   }
