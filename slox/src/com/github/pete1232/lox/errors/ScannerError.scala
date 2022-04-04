@@ -6,12 +6,6 @@ import cats.Show
 
 enum ScannerError(val message: String, val lexeme: String, val lineNumber: Int)
     extends Throwable:
-  case ValidOneCharacterNoWhitespace(line: Int, override val lexeme: String)
-      extends ScannerError(
-        "No whitespace after single character token.",
-        lexeme,
-        line,
-      )
   case ValidTwoCharacterNoWhitespace(line: Int, override val lexeme: String)
       extends ScannerError(
         "No whitespace after two character token.",
