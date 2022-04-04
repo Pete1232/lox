@@ -36,17 +36,28 @@ final case class Runner(scanner: Scanner, parser: Parser)(implicit
     yield result).recoverWith(ErrorHandler.repl)
 
   private def runScan(source: String): IO[ExitCode] =
-    val result =
-      for
-        tokens     <- scanner.scan(source).sequence
-        expression <- parser.parse(tokens).sequence
-      yield expression
-
-    (result match
-      case Left(err)          => ErrorHandler.scanner(err)
-      case Right(expressions) =>
-        expressions.map(IO.println).sequence.as(ExitCode.Success)
-    )
+    val (scannerErrors, scannedTokens) =
+      scanner.scan(source).partitionMap(identity)
+    if scannerErrors.nonEmpty then
+      scannerErrors
+        .map { scanError =>
+          import scanError.*
+          IO.println(s"[line $lineNumber] Error: $message")
+        }
+        .sequence_
+        .as(ExitCode(65))
+    else
+      val (parserErrors, parsedExpressions) =
+        parser.parse(scannedTokens).partitionMap(identity)
+      if parserErrors.nonEmpty then
+        parserErrors
+          .map { parseError =>
+            import parseError.*
+            IO.println(s"[line $lineNumber] Error: $message")
+          }
+          .sequence_
+          .as(ExitCode.Error)
+      else parsedExpressions.map(IO.println).sequence_.as(ExitCode.Success)
 
   object ErrorHandler:
 
@@ -59,12 +70,4 @@ final case class Runner(scanner: Scanner, parser: Parser)(implicit
         IO.println(s"File not found at path ${nsfe.getFile}").as(ExitCode.Error)
     }
 
-    val scanner: PartialFunction[Throwable, IO[ExitCode]] = {
-      case scan: errors.ScannerError =>
-        import scan.*
-        IO.println(s"[line $lineNumber] Error: $message").as(ExitCode(65))
-      case parse: errors.ParserError =>
-        import parse.*
-        IO.println(s"[line $lineNumber] Error: $message").as(ExitCode.Error)
-    }
 end Runner
