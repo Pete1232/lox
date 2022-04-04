@@ -189,29 +189,15 @@ object DefaultScanner extends Scanner:
                 char2 match
                   case c if c.isWhitespace =>
                     singleCharacterResult(char)
-                  case '/'                 => Right(Comment)
-                  case '*'                 =>
+                  case '/' if char == '/'  => Right(Comment)
+                  case '*' if char == '/'  =>
                     consumeComment(remainingInput).map(stringValue =>
                       MultiLineComment(
                         length = stringValue.length,
                         lines = stringValue.count(_ == '\n'),
                       )
                     )
-                  case _                   =>
-                    val result = twoCharacterResult(
-                      char.toString + char2.toString
-                    )
-                    thirdCharacter match
-                      case Some(char3) if !char3.isWhitespace =>
-                        result.flatMap { _ =>
-                          Left(
-                            ScannerError.ValidTwoCharacterNoWhitespace(
-                              currentLine,
-                              charactersToWhitespace,
-                            )
-                          )
-                        }
-                      case _                                  => result
+                  case _ => twoCharacterResult(char.toString + char2.toString)
           case _ if char.isDigit =>
             consumeDigits(remainingInput).map(lexeme =>
               ValidToken(

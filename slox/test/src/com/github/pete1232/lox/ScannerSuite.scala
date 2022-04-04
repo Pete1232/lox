@@ -145,21 +145,33 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     )
   }
 
+  pureTest("parse two character tokens with no spacing") {
+    import Token.TwoCharacter.*
+    val result = DefaultScanner.scan("==!=>=")
+    expect(
+      result == List(
+        Right(TokenWithContext(EqualEqual, TokenContext(0))),
+        Right(TokenWithContext(BangEqual, TokenContext(0))),
+        Right(TokenWithContext(GreaterEqual, TokenContext(0))),
+      )
+    )
+  }
+
   pureTest("error if no space is left between valid two character tokens") {
+    import Token.SingleCharacter.*
+    import Token.TwoCharacter.*
+
     val result = DefaultScanner.scan("==* ==^;&")
 
     expect(
       result == List(
+        Right(TokenWithContext(EqualEqual, TokenContext(0))),
+        Right(TokenWithContext(Star, TokenContext(0))),
+        Right(TokenWithContext(EqualEqual, TokenContext(0))),
         Left(
-          ScannerError.ValidTwoCharacterNoWhitespace(
+          ScannerError.InvalidFirstCharacter(
             0,
-            "==*",
-          )
-        ),
-        Left(
-          ScannerError.ValidTwoCharacterNoWhitespace(
-            0,
-            "==^;&",
+            "^;&",
           )
         ),
       )
@@ -376,6 +388,8 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
 
   pureTest("parse strings up to a space on errors") {
     import Token.SingleCharacter.*
+    import Token.TwoCharacter.*
+
     val result =
       DefaultScanner.scan("_test !a; *a* !=a, 123a5 123.4.5 test!id var~if")
 
@@ -402,10 +416,13 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
             "a*",
           )
         ),
+        Right(
+          TokenWithContext(BangEqual, TokenContext(0))
+        ),
         Left(
-          ScannerError.ValidTwoCharacterNoWhitespace(
+          ScannerError.LiteralIdentifierBadCharacter(
             0,
-            "!=a,",
+            "a,",
           )
         ),
         Left(
