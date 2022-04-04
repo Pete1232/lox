@@ -222,19 +222,7 @@ object DefaultScanner extends Scanner:
                 currentLine,
               )
             )
-          case _                 =>
-            val result = singleCharacterResult(char)
-            secondCharacter match
-              case Some(char2) if !char2.isWhitespace =>
-                result.flatMap { _ =>
-                  Left(
-                    ScannerError.ValidOneCharacterNoWhitespace(
-                      currentLine,
-                      charactersToWhitespace,
-                    )
-                  )
-                }
-              case _                                  => result
+          case _                 => singleCharacterResult(char)
 
     nextToken match
       case Right(EOF)   => results

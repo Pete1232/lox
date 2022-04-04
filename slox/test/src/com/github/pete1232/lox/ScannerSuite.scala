@@ -101,24 +101,32 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     )
   }
 
-  pureTest("error if no space is left between valid single character tokens") {
+  pureTest("parse single character tokens with no spacing") {
     import Token.SingleCharacter.*
-    import Token.TwoCharacter.*
+    val result = DefaultScanner.scan("*+-/")
+    expect(
+      result == List(
+        Right(TokenWithContext(Star, TokenContext(0))),
+        Right(TokenWithContext(Plus, TokenContext(0))),
+        Right(TokenWithContext(Minus, TokenContext(0))),
+        Right(TokenWithContext(Slash, TokenContext(0))),
+      )
+    )
+  }
 
-    val result = DefaultScanner.scan("*/ +% /@- !£")
+  pureTest(
+    "error if a valid single character token is followed by an invalid one"
+  ) {
+    import Token.SingleCharacter.*
+    val result = DefaultScanner.scan("+% /@- !£")
 
     expect(
       result == List(
+        Right(TokenWithContext(Plus, TokenContext(0))),
         Left(
-          ScannerError.ValidOneCharacterNoWhitespace(
+          ScannerError.InvalidFirstCharacter(
             0,
-            "*/",
-          )
-        ),
-        Left(
-          ScannerError.ValidOneCharacterNoWhitespace(
-            0,
-            "+%",
+            "%",
           )
         ),
         Left(
@@ -138,9 +146,6 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
   }
 
   pureTest("error if no space is left between valid two character tokens") {
-    import Token.SingleCharacter.*
-    import Token.TwoCharacter.*
-
     val result = DefaultScanner.scan("==* ==^;&")
 
     expect(
@@ -370,6 +375,7 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
   }
 
   pureTest("parse strings up to a space on errors") {
+    import Token.SingleCharacter.*
     val result =
       DefaultScanner.scan("_test !a; *a* !=a, 123a5 123.4.5 test!id var~if")
 
@@ -387,10 +393,13 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
             "!a;",
           )
         ),
+        Right(
+          TokenWithContext(Star, TokenContext(0))
+        ),
         Left(
-          ScannerError.ValidOneCharacterNoWhitespace(
+          ScannerError.LiteralIdentifierBadCharacter(
             0,
-            "*a*",
+            "a*",
           )
         ),
         Left(
