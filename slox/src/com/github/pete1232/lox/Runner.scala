@@ -40,10 +40,7 @@ final case class Runner(scanner: Scanner, parser: Parser)(implicit
       scanner.scan(source).partitionMap(identity)
     if scannerErrors.nonEmpty then
       scannerErrors
-        .map { scanError =>
-          import scanError.*
-          IO.println(s"[line $lineNumber] Error: $message")
-        }
+        .map(IO.println)
         .sequence_
         .as(ExitCode(65))
     else
@@ -51,10 +48,7 @@ final case class Runner(scanner: Scanner, parser: Parser)(implicit
         parser.parse(scannedTokens).partitionMap(identity)
       if parserErrors.nonEmpty then
         parserErrors
-          .map { parseError =>
-            import parseError.*
-            IO.println(s"[line $lineNumber] Error: $message")
-          }
+          .map(IO.println)
           .sequence_
           .as(ExitCode.Error)
       else parsedExpressions.map(IO.println).sequence_.as(ExitCode.Success)

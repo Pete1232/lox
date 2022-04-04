@@ -1,5 +1,7 @@
 package com.github.pete1232.lox.errors
 
+import com.github.pete1232.lox.Scanner
+
 import cats.Show
 
 enum ScannerError(val message: String, val lexeme: String, val lineNumber: Int)
@@ -64,7 +66,10 @@ enum ScannerError(val message: String, val lexeme: String, val lineNumber: Int)
         line,
       )
 
-  override def toString =
-    s"${this.getClass.getSimpleName}: $message [$lexeme] [line: $lineNumber]"
-
 end ScannerError
+
+object ScannerError:
+  implicit val showScannerError: Show[ScannerError] = Show.show { error =>
+    import error.*
+    s"[line $lineNumber] Error in scanner at '$lexeme': $message"
+  }

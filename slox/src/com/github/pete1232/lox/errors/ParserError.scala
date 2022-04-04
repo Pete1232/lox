@@ -24,3 +24,9 @@ enum ParserError(val message: String, val lineNumber: Int) extends Throwable:
         s"Expect ')' to close an expression.",
         line,
       )
+
+object ParserError:
+  implicit val showParserError: Show[ParserError] = Show.show { error =>
+    import error.*
+    s"[line $lineNumber] Error in parser: $message"
+  }
