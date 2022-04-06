@@ -35,6 +35,8 @@ object Token:
     case Greater    extends SingleCharacter(">")
     case Less       extends SingleCharacter("<")
     case Bang       extends SingleCharacter("!")
+    case Question   extends SingleCharacter("?")
+    case Colon      extends SingleCharacter(":")
 
   object SingleCharacter:
     def fromString(s: String): Option[SingleCharacter] =

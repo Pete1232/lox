@@ -14,6 +14,7 @@ object Expression:
       case g: Group   => Show[Group].show(g)
       case u: Unary   => Show[Unary].show(u)
       case b: Binary  => Show[Binary].show(b)
+      case t: Ternary => Show[Ternary].show(t)
   )
 
   final case class Literal(
@@ -60,4 +61,21 @@ object Expression:
         b.left
       ) + " " + Show[Expression].show(b.right) + ")"
     }
+
+  final case class Ternary(
+      left: Expression,
+      middle: Expression,
+      right: Expression,
+  ) extends Expression
+
+  object Ternary:
+    implicit val showTernary: Show[Ternary] = Show.show { t =>
+      "(" + Show[Expression].show(
+        t.left
+      ) + " ? " + Show[Expression].show(t.middle) + " : " + Show[Expression]
+        .show(
+          t.right
+        ) + ")"
+    }
+
 end Expression

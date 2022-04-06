@@ -181,6 +181,44 @@ object ParserSuite extends SimpleIOSuite with Checkers:
 
   tokenTest("comma", Token.SingleCharacter.Comma)
 
+  pureTest("match a ternary expression") {
+    val tokens =
+      simpleTokens(
+        Token.Keyword.True,
+        Token.SingleCharacter.Question,
+        Token.LiteralNumber("1", 1),
+        Token.SingleCharacter.Colon,
+        Token.LiteralString("\"2\"", "2"),
+      )
+    val result = DefaultParser.parse(tokens)
+    expect(
+      result == List(
+        Right(
+          Expression.Ternary(
+            Expression.Literal(true),
+            Expression.Literal(1),
+            Expression.Literal("2"),
+          )
+        )
+      )
+    )
+  }
+
+  pureTest("error when a ternary expression is unclosed") {
+    val tokens =
+      simpleTokens(
+        Token.Keyword.True,
+        Token.SingleCharacter.Question,
+        Token.LiteralNumber("2", 2),
+      )
+    val result = DefaultParser.parse(tokens)
+    expect(
+      result == List(
+        Left(ParserError.IncompleteConditionalError(0))
+      )
+    )
+  }
+
   pureTest("match a primary expression within brackets") {
     val tokens =
       simpleTokens(
@@ -389,6 +427,36 @@ object ParserSuite extends SimpleIOSuite with Checkers:
     )
   }
 
+  pureTest("conditionals should be right associative") {
+    val tokens = simpleTokens(
+      Token.Keyword.True,
+      Token.SingleCharacter.Question,
+      Token.LiteralNumber("1", 1),
+      Token.SingleCharacter.Colon,
+      Token.Keyword.False,
+      Token.SingleCharacter.Question,
+      Token.LiteralNumber("2", 2),
+      Token.SingleCharacter.Colon,
+      Token.LiteralNumber("3", 3),
+    )
+    val result = DefaultParser.parse(tokens)
+    expect(
+      result == List(
+        Right(
+          Expression.Ternary(
+            Expression.Literal(true),
+            Expression.Literal(1),
+            Expression.Ternary(
+              Expression.Literal(false),
+              Expression.Literal(2),
+              Expression.Literal(3),
+            ),
+          )
+        )
+      )
+    )
+  }
+
   pureTest("commas should be left associative") {
     val tokens = simpleTokens(
       Token.LiteralNumber("30", 30),
@@ -519,6 +587,40 @@ object ParserSuite extends SimpleIOSuite with Checkers:
     )
   }
 
+  pureTest("a equality expression should take precedence over a conditional") {
+    val tokens = simpleTokens(
+      Token.LiteralNumber("1", 1),
+      Token.TwoCharacter.BangEqual,
+      Token.LiteralNumber("7", 7),
+      Token.SingleCharacter.Question,
+      Token.LiteralNumber("6", 6),
+      Token.SingleCharacter.Colon,
+      Token.LiteralNumber("3", 3),
+      Token.TwoCharacter.EqualEqual,
+      Token.LiteralNumber("5", 5),
+    )
+    val result = DefaultParser.parse(tokens)
+    expect(
+      result == List(
+        Right(
+          Expression.Ternary(
+            Expression.Binary(
+              Expression.Literal(1),
+              Token.TwoCharacter.BangEqual,
+              Expression.Literal(7),
+            ),
+            Expression.Literal(6),
+            Expression.Binary(
+              Expression.Literal(3),
+              Token.TwoCharacter.EqualEqual,
+              Expression.Literal(5),
+            ),
+          )
+        )
+      )
+    )
+  }
+
   pureTest("if there is an error, continue parsing after a semicolon") {
     val tokens = simpleTokens(
       Token.LiteralNumber("1", 1),
@@ -579,6 +681,19 @@ object ParserSuite extends SimpleIOSuite with Checkers:
       )
     }
   }
+
+  // expression  → comma ;
+  // comma       → conditional ( "," conditional )* ;
+  // conditional → equality ( "?" expression ":" conditional )?
+  // equality    → comparison ( ( "!=" | "==" ) comparison )* ;
+  // comparison  → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
+  // term        → factor ( ( "-" | "+" ) factor )* ;
+  // factor      → unary ( ( "/" | "*" ) unary )* ;
+  // unary       → ( "!" | "-" | "--" | "++" ) unary
+  //               | postfix ;
+  // postfix     → primary ( "--" | ++" )* ;
+  // primary     → NUMBER | STRING | "true" | "false" | "nil"
+  //               | "(" expression ")" ;
 
   val literalNumberGen: Gen[TokenWithContext]     =
     Gen.posNum[Double].map(n => simpleToken(Token.LiteralNumber(n.toString, n)))
@@ -710,13 +825,6 @@ object ParserSuite extends SimpleIOSuite with Checkers:
     }
   }
 
-  val primaryGroupExpressionGen: Gen[List[TokenWithContext]] =
-    equalityExpressionGen.map(expr =>
-      simpleToken(Token.SingleCharacter.LeftParen) +: expr :+ simpleToken(
-        Token.SingleCharacter.RightParen
-      )
-    )
-
   val commaExpressionGen: Gen[List[TokenWithContext]] =
     val commaAndEqualityGen =
       for right <- equalityExpressionGen
@@ -735,8 +843,39 @@ object ParserSuite extends SimpleIOSuite with Checkers:
     }
   }
 
+  val expressionGen: Gen[List[TokenWithContext]] = equalityExpressionGen
+
+  val primaryGroupExpressionGen: Gen[List[TokenWithContext]] =
+    expressionGen.map(expr =>
+      simpleToken(Token.SingleCharacter.LeftParen) +: expr :+ simpleToken(
+        Token.SingleCharacter.RightParen
+      )
+    )
+
   test("parse a valid primary group expression") {
     forall(primaryGroupExpressionGen) { tokens =>
+      val result = DefaultParser.parse(tokens)
+      expect(result.sequence.isRight)
+    }
+  }
+
+  val conditionalExpressionGen: Gen[List[TokenWithContext]] =
+    val expressionAndConditionalGen =
+      for
+        expression  <- expressionGen
+        conditional <- conditionalExpressionGen
+      yield ((simpleToken(
+        Token.SingleCharacter.Question
+      ) +: expression) :+ simpleToken(
+        Token.SingleCharacter.Colon
+      )) ++ conditional
+    for
+      left  <- equalityExpressionGen
+      right <- Gen.option(expressionAndConditionalGen)
+    yield left ++ right.getOrElse(Nil)
+
+  test("parse a valid conditional expression") {
+    forall(conditionalExpressionGen) { tokens =>
       val result = DefaultParser.parse(tokens)
       expect(result.sequence.isRight)
     }

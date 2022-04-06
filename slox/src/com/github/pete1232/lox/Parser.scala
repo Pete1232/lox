@@ -70,11 +70,52 @@ object DefaultParser extends Parser:
   private def expression(
       tokens: List[TokenWithContext]
   ): (Either[ParserError, Expression], List[TokenWithContext]) =
+    comma(tokens)
+
+  private def comma(
+      tokens: List[TokenWithContext]
+  ): (Either[ParserError, Expression], List[TokenWithContext]) =
     binaryExpression(
       tokens,
       List(Token.SingleCharacter.Comma),
-      equality,
+      conditional,
     )
+
+  private def conditional(
+      tokens: List[TokenWithContext]
+  ): (Either[ParserError, Expression], List[TokenWithContext]) =
+    equality(tokens) match
+      case (Left(err), remainingTokens) => (Left(err), remainingTokens)
+      case (Right(leftExpr), remainingTokensAfterLeft) =>
+        remainingTokensAfterLeft.headOption match
+          case Some(questionToken)
+              if questionToken.token == Token.SingleCharacter.Question =>
+            expression(remainingTokensAfterLeft.tail) match
+              case (Left(err), remainingTokens) => (Left(err), remainingTokens)
+              case (Right(middleExpr), remainingTokensAfterMiddle) =>
+                remainingTokensAfterMiddle.headOption match
+                  case Some(colonToken)
+                      if colonToken.token == Token.SingleCharacter.Colon =>
+                    conditional(remainingTokensAfterMiddle.tail) match
+                      case (Left(err), remainingTokens)                  =>
+                        (Left(err), remainingTokens)
+                      case (Right(rightExpr), remainingTokensAfterRight) =>
+                        (
+                          Right(
+                            Expression.Ternary(leftExpr, middleExpr, rightExpr)
+                          ),
+                          remainingTokensAfterRight,
+                        )
+                  case _ =>
+                    (
+                      Left(
+                        IncompleteConditionalError(
+                          questionToken.context.lineCount
+                        )
+                      ),
+                      remainingTokensAfterMiddle,
+                    )
+          case _ => (Right(leftExpr), remainingTokensAfterLeft)
 
   private def equality(
       tokens: List[TokenWithContext]
