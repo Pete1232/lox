@@ -70,7 +70,11 @@ object DefaultParser extends Parser:
   private def expression(
       tokens: List[TokenWithContext]
   ): (Either[ParserError, Expression], List[TokenWithContext]) =
-    equality(tokens)
+    binaryExpression(
+      tokens,
+      List(Token.SingleCharacter.Comma),
+      equality,
+    )
 
   private def equality(
       tokens: List[TokenWithContext]

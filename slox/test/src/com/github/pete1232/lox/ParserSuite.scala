@@ -179,6 +179,8 @@ object ParserSuite extends SimpleIOSuite with Checkers:
 
   tokenTest("equality", Token.TwoCharacter.BangEqual)
 
+  tokenTest("comma", Token.SingleCharacter.Comma)
+
   pureTest("match a primary expression within brackets") {
     val tokens =
       simpleTokens(
@@ -387,6 +389,32 @@ object ParserSuite extends SimpleIOSuite with Checkers:
     )
   }
 
+  pureTest("commas should be left associative") {
+    val tokens = simpleTokens(
+      Token.LiteralNumber("30", 30),
+      Token.SingleCharacter.Comma,
+      Token.LiteralNumber("2", 2),
+      Token.SingleCharacter.Comma,
+      Token.LiteralNumber("15", 15),
+    )
+    val result = DefaultParser.parse(tokens)
+    expect(
+      result == List(
+        Right(
+          Expression.Binary(
+            Expression.Binary(
+              Expression.Literal(30),
+              Token.SingleCharacter.Comma,
+              Expression.Literal(2),
+            ),
+            Token.SingleCharacter.Comma,
+            Expression.Literal(15),
+          )
+        )
+      )
+    )
+  }
+
   pureTest("a factor expression should take precedence over a term") {
     val tokens = simpleTokens(
       Token.LiteralNumber("7", 7),
@@ -457,6 +485,32 @@ object ParserSuite extends SimpleIOSuite with Checkers:
             Expression.Binary(
               Expression.Literal(6),
               Token.SingleCharacter.Greater,
+              Expression.Literal(3),
+            ),
+          )
+        )
+      )
+    )
+  }
+
+  pureTest("a equality expression should take precedence over a comma") {
+    val tokens = simpleTokens(
+      Token.LiteralNumber("7", 7),
+      Token.SingleCharacter.Comma,
+      Token.LiteralNumber("6", 6),
+      Token.TwoCharacter.EqualEqual,
+      Token.LiteralNumber("3", 3),
+    )
+    val result = DefaultParser.parse(tokens)
+    expect(
+      result == List(
+        Right(
+          Expression.Binary(
+            Expression.Literal(7),
+            Token.SingleCharacter.Comma,
+            Expression.Binary(
+              Expression.Literal(6),
+              Token.TwoCharacter.EqualEqual,
               Expression.Literal(3),
             ),
           )
@@ -662,6 +716,24 @@ object ParserSuite extends SimpleIOSuite with Checkers:
         Token.SingleCharacter.RightParen
       )
     )
+
+  val commaExpressionGen: Gen[List[TokenWithContext]] =
+    val commaAndEqualityGen =
+      for right <- equalityExpressionGen
+      yield (simpleToken(Token.SingleCharacter.Comma), right)
+    for
+      start  <- comparisonExpressionGen
+      repeat <- Gen.listOf(commaAndEqualityGen)
+    yield repeat.foldLeft(start) { (l, r) =>
+      (l :+ r._1) ++ r._2
+    }
+
+  test("parse a valid comma expression") {
+    forall(commaExpressionGen) { tokens =>
+      val result = DefaultParser.parse(tokens)
+      expect(result.sequence.isRight)
+    }
+  }
 
   test("parse a valid primary group expression") {
     forall(primaryGroupExpressionGen) { tokens =>

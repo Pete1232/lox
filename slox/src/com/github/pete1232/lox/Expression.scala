@@ -46,7 +46,7 @@ object Expression:
   type BinaryOperator = Token.TwoCharacter | Token.SingleCharacter.Less.type |
     Token.SingleCharacter.Greater.type | Token.SingleCharacter.Plus.type |
     Token.SingleCharacter.Minus.type | Token.SingleCharacter.Star.type |
-    Token.SingleCharacter.Slash.type
+    Token.SingleCharacter.Slash.type | Token.SingleCharacter.Comma.type
 
   final case class Binary(
       left: Expression,
