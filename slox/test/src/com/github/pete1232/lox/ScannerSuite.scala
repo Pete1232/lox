@@ -542,4 +542,19 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     )
   }
 
+  pureTest("allow simple string expressions with no spacing") {
+    val result = DefaultScanner.scan("\"a\"!=\"b\"")
+    expect(
+      result == List(
+        Right(
+          TokenWithContext(Token.LiteralString("\"a\"", "a"), TokenContext(0))
+        ),
+        Right(TokenWithContext(Token.TwoCharacter.BangEqual, TokenContext(0))),
+        Right(
+          TokenWithContext(Token.LiteralString("\"b\"", "b"), TokenContext(0))
+        ),
+      )
+    )
+  }
+
 end ScannerSuite
