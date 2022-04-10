@@ -682,6 +682,39 @@ object ParserSuite extends SimpleIOSuite with Checkers:
     }
   }
 
+  val binaryOperandGen: Gen[TokenWithContext] = Gen
+    .oneOf(
+      Token.TwoCharacter.BangEqual,
+      Token.TwoCharacter.EqualEqual,
+      Token.SingleCharacter.Greater,
+      Token.TwoCharacter.GreaterEqual,
+      Token.SingleCharacter.Less,
+      Token.TwoCharacter.LessEqual,
+      Token.SingleCharacter.Plus,
+      Token.SingleCharacter.Slash,
+      Token.SingleCharacter.Star,
+    )
+    .map(simpleToken)
+  test(
+    "error and continue when a binary expression is missing a left hand operand"
+  ) {
+    forall(binaryOperandGen) { operand =>
+      val tokens = operand +: simpleTokens(
+        Token.LiteralNumber("5", 5),
+        Token.LiteralNumber("6", 6),
+      )
+      val result = DefaultParser.parse(tokens)
+      expect(
+        result == List(
+          Left(
+            ParserError.BinaryExpressionNotOpened(0)
+          ),
+          Right(Expression.Literal(6)),
+        )
+      )
+    }
+  }
+
   // expression  → comma ;
   // comma       → conditional ( "," conditional )* ;
   // conditional → equality ( "?" expression ":" conditional )?
@@ -694,6 +727,10 @@ object ParserSuite extends SimpleIOSuite with Checkers:
   // postfix     → primary ( "--" | ++" )* ;
   // primary     → NUMBER | STRING | "true" | "false" | "nil"
   //               | "(" expression ")" ;
+  //               | ( "!=" | "==" ) equality
+  //               | ( ">" | ">=" | "<" | "<=" ) comparison
+  //               | ( "+" ) term
+  //               | ( "/" | "*" ) factor ;
 
   val literalNumberGen: Gen[TokenWithContext]     =
     Gen.posNum[Double].map(n => simpleToken(Token.LiteralNumber(n.toString, n)))

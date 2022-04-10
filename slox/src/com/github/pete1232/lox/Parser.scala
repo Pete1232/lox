@@ -29,8 +29,11 @@ object DefaultParser extends Parser:
     else
       val (expressionResult, remainingTokens) = expression(tokensIn)
       val tokensToParse                       =
-        if (expressionResult.isRight) then remainingTokens
-        else synchronize(remainingTokens)
+        expressionResult match
+          case Right(_) => remainingTokens
+          case Left(binaryOperatorError: BinaryExpressionNotOpened) =>
+            remainingTokens
+          case _ => synchronize(remainingTokens)
       parseLoop(tokensToParse, result :+ expressionResult)
 
   private def binaryExpression(
@@ -191,11 +194,11 @@ object DefaultParser extends Parser:
         (Right(Expression.Literal(false)), tokens.tail)
       case Token.Keyword.True  => (Right(Expression.Literal(true)), tokens.tail)
       case Token.Keyword.Nil   => (Right(Expression.Literal(null)), tokens.tail)
-      case Token.LiteralNumber(_, n)       =>
+      case Token.LiteralNumber(_, n)                                    =>
         (Right(Expression.Literal(n)), tokens.tail)
-      case Token.LiteralString(_, s)       =>
+      case Token.LiteralString(_, s)                                    =>
         (Right(Expression.Literal(s)), tokens.tail)
-      case Token.SingleCharacter.LeftParen =>
+      case Token.SingleCharacter.LeftParen                              =>
         val (expressionResult, remainingTokens) = expression(tokens.tail)
         expressionResult match
           case Left(error) => (expressionResult, remainingTokens)
@@ -210,7 +213,20 @@ object DefaultParser extends Parser:
                   ),
                   remainingTokens,
                 )
-      case _                               =>
+      case Token.SingleCharacter.Slash | Token.SingleCharacter.Star     =>
+        binaryOperatorError(tokens.head.context.lineCount, tokens.tail, unary)
+      case Token.SingleCharacter.Plus                                   =>
+        binaryOperatorError(tokens.head.context.lineCount, tokens.tail, factor)
+      case Token.SingleCharacter.Greater | Token.SingleCharacter.Less |
+          Token.TwoCharacter.GreaterEqual | Token.TwoCharacter.LessEqual =>
+        binaryOperatorError(tokens.head.context.lineCount, tokens.tail, term)
+      case Token.TwoCharacter.EqualEqual | Token.TwoCharacter.BangEqual =>
+        binaryOperatorError(
+          tokens.head.context.lineCount,
+          tokens.tail,
+          comparison,
+        )
+      case _                                                            =>
         (
           Left(
             UnmatchedTokenError(
@@ -221,6 +237,22 @@ object DefaultParser extends Parser:
           ),
           tokens.tail,
         )
+
+  private def binaryOperatorError(
+      errorLine: Int,
+      tokens: List[TokenWithContext],
+      production: List[TokenWithContext] => (
+          Either[ParserError, Expression],
+          List[TokenWithContext],
+      ),
+  ) =
+    val remainingTokens = production(tokens)._2
+    (
+      Left(
+        BinaryExpressionNotOpened(errorLine)
+      ),
+      remainingTokens,
+    )
 
   private def synchronize(
       tokens: List[TokenWithContext]

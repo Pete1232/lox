@@ -27,7 +27,13 @@ enum ParserError(val message: String, val lineNumber: Int) extends Throwable:
 
   case IncompleteConditionalError(line: Int)
       extends ParserError(
-        s"A ternary expression was not completed. Expected a ? b : c",
+        "A ternary expression was not completed. Expected a ? b : c",
+        line,
+      )
+
+  case BinaryExpressionNotOpened(line: Int)
+      extends ParserError(
+        s"A binary expression was missing a left-hand operand.",
         line,
       )
 
