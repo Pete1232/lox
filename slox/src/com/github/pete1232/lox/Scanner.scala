@@ -157,16 +157,20 @@ object DefaultScanner extends Scanner:
           case '\n'              => Right(NewLine)
           case ' ' | '\r' | '\t' => Right(Space)
           case '"'               =>
-            consumeString(remainingInput).map(stringValue =>
-              ValidToken(
-                Token.LiteralString(
-                  stringValue,
-                  StringContext.processEscapes(
-                    stringValue.substring(1, stringValue.length - 1)
-                  ),
-                ),
-                currentLine,
-              )
+            consumeString(remainingInput).flatMap(stringValue =>
+              val unescapedString =
+                stringValue.substring(1, stringValue.length - 1)
+              if (unescapedString != null) then
+                Right(
+                  ValidToken(
+                    Token.LiteralString(
+                      stringValue,
+                      StringContext.processEscapes(unescapedString),
+                    ),
+                    currentLine,
+                  )
+                )
+              else Left(ScannerError.LiteralStringNotClosed(currentLine, ""))
             )
           case _ if char.isAlpha =>
             consumeIdentifier(remainingInput).map { stringValue =>

@@ -24,7 +24,9 @@ final case class Runner(scanner: Scanner, parser: Parser)(implicit
   private def runFile(path: String): IO[ExitCode] =
     IO
       .blocking(Files.readString(Path.of(path)))
-      .flatMap(runScan)
+      .flatMap { s =>
+        if (s != null) then runScan(s) else IO.pure(ExitCode.Error)
+      }
       .recoverWith(ErrorHandler.file)
 
   private def runPrompt(): IO[ExitCode] =
