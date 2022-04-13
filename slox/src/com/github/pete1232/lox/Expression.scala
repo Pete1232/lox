@@ -18,7 +18,7 @@ object Expression:
   )
 
   final case class Literal(
-      value: Double | String | Boolean | Null
+      value: LoxValue
   ) extends Expression
 
   object Literal:
