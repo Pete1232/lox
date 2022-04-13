@@ -5,6 +5,9 @@ trait Interpreter[T]:
 
 object Interpreter:
 
-  given Interpreter[Expression.Literal] with
-    extension (literal: Expression.Literal)
-      def interpret: LoxValue = literal.value
+  given Interpreter[Expression] with
+    extension (expr: Expression)
+      def interpret: LoxValue = expr match
+        case l: Expression.Literal => l.value
+        case g: Expression.Group   => g.expression.interpret
+        case _                     => ???
