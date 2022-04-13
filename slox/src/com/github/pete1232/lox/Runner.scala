@@ -11,7 +11,7 @@ import cats.effect.{ExitCode, IO, IOApp}
 import cats.effect.std.Console
 import cats.implicits.*
 
-final case class Runner(scanner: Scanner, parser: Parser)(implicit
+final case class Runner(scanner: Scanner, parser: Parser)(using
     console: Console[IO]
 ):
 

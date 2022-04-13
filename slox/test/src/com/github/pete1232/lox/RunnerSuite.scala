@@ -45,7 +45,7 @@ object RunnerSuite extends SimpleIOSuite:
     def readLineWithCharset(charset: Charset): IO[String] = in
 
   def runnerWithFakeConsole(in: IO[String]) =
-    Runner(MockScanner, MockParser)(FakeConsole(in))
+    Runner(MockScanner, MockParser)(using FakeConsole(in))
 
   test("repl should exit with a success on EOF") {
     for exitCode <- runnerWithFakeConsole(IO.raiseError(new EOFException()))

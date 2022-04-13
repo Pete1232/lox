@@ -57,7 +57,7 @@ enum ScannerError(val message: String, val lexeme: String, val lineNumber: Int)
 end ScannerError
 
 object ScannerError:
-  implicit val showScannerError: Show[ScannerError] = Show.show { error =>
+  given Show[ScannerError] = Show.show { error =>
     import error.*
     s"[line $lineNumber] Error in scanner at '$lexeme': $message"
   }

@@ -9,15 +9,18 @@ sealed trait Token:
 final case class TokenWithContext(token: Token, context: TokenContext)
 
 object TokenWithContext:
-  implicit val showTokenWithContext: Show[TokenWithContext] =
+  given Show[TokenWithContext] =
     Show.show(tc => Show[Token].show(tc.token))
 
 final case class TokenContext(lineCount: Int)
 
 object Token:
 
-  implicit def showToken[T <: Token]: Show[T] =
+  given Show[Token] =
     Show.show(t => s"${t.toString} for lexeme ${t.lexeme}")
+
+  given [T <: Token](using showToken: Show[Token]): Show[T] =
+    Show.show(showToken.show)
 
   enum SingleCharacter(final val lexeme: String) extends Token:
     case LeftParen  extends SingleCharacter("(")

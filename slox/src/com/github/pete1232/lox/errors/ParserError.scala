@@ -38,7 +38,7 @@ enum ParserError(val message: String, val lineNumber: Int) extends Throwable:
       )
 
 object ParserError:
-  implicit val showParserError: Show[ParserError] = Show.show { error =>
+  given Show[ParserError] = Show.show { error =>
     import error.*
     s"[line $lineNumber] Error in parser: $message"
   }

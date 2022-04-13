@@ -8,7 +8,7 @@ sealed trait Expression
 
 object Expression:
 
-  implicit val showExpression: Show[Expression] = Show.show(
+  given Show[Expression] = Show.show(
     _ match
       case l: Literal => Show[Literal].show(l)
       case g: Group   => Show[Group].show(g)
@@ -22,14 +22,14 @@ object Expression:
   ) extends Expression
 
   object Literal:
-    implicit def showLiteral: Show[Literal] = Show.show(_.value.toString)
+    given Show[Literal] = Show.show(_.value.toString)
 
   final case class Group(
       expression: Expression
   ) extends Expression
 
   object Group:
-    implicit val showGroup: Show[Group] = Show.show { g =>
+    given showGroup: Show[Group] = Show.show { g =>
       "(" + "group " + Show[Expression].show(g.expression) + ")"
     }
 
@@ -40,7 +40,7 @@ object Expression:
   ) extends Expression
 
   object Unary:
-    implicit val showUnary: Show[Unary] = Show.show { u =>
+    given Show[Unary] = Show.show { u =>
       "(" + u.operator.lexeme + " " + Show[Expression].show(u.right) + ")"
     }
 
@@ -56,7 +56,7 @@ object Expression:
   ) extends Expression
 
   object Binary:
-    implicit val showBinary: Show[Binary] = Show.show { b =>
+    given Show[Binary] = Show.show { b =>
       "(" + b.operator.lexeme + " " + Show[Expression].show(
         b.left
       ) + " " + Show[Expression].show(b.right) + ")"
@@ -69,7 +69,7 @@ object Expression:
   ) extends Expression
 
   object Ternary:
-    implicit val showTernary: Show[Ternary] = Show.show { t =>
+    given Show[Ternary] = Show.show { t =>
       "(" + Show[Expression].show(
         t.left
       ) + " ? " + Show[Expression].show(t.middle) + " : " + Show[Expression]
