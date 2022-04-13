@@ -7,7 +7,6 @@ import java.nio.file.{Files, NoSuchFileException, Path}
 
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.effect.kernel.Resource
-import cats.implicits.*
 
 object Main extends IOApp:
 
