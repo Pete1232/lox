@@ -1,5 +1,7 @@
 package com.github.pete1232.lox
 
+import com.github.pete1232.lox.io.SimpleConsole
+
 import scala.io.Source
 
 import java.io.EOFException
@@ -8,11 +10,10 @@ import java.nio.file.{Files, NoSuchFileException, Path}
 import cats.Show
 import cats.data.EitherT
 import cats.effect.{ExitCode, IO, IOApp}
-import cats.effect.std.Console
 import cats.implicits.*
 
 final case class Runner(scanner: Scanner, parser: Parser)(using
-    console: Console[IO]
+    console: SimpleConsole[IO]
 ):
 
   final def run(args: List[String]): IO[ExitCode] =

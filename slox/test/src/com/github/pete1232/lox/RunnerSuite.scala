@@ -1,5 +1,7 @@
 package com.github.pete1232.lox
 
+import com.github.pete1232.lox.io.SimpleConsole
+
 import java.io.EOFException
 import java.nio.charset.Charset
 
@@ -37,15 +39,10 @@ object RunnerSuite extends SimpleIOSuite:
     yield expect(exitCode.code == 0)
   }
 
-  case class FakeConsole(in: IO[String]) extends Console[IO]:
-    def error[A](a: A)(implicit S: Show[A]): IO[Unit]     = IO.unit
-    def errorln[A](a: A)(implicit S: Show[A]): IO[Unit]   = IO.unit
-    def print[A](a: A)(implicit S: Show[A]): IO[Unit]     = IO.unit
-    def println[A](a: A)(implicit S: Show[A]): IO[Unit]   = IO.unit
-    def readLineWithCharset(charset: Charset): IO[String] = in
-
   def runnerWithFakeConsole(in: IO[String]) =
-    Runner(MockScanner, MockParser)(using FakeConsole(in))
+    Runner(MockScanner, MockParser)(using
+      SimpleConsole.fakeConsole(IO.unit, in)
+    )
 
   test("repl should exit with a success on EOF") {
     for exitCode <- runnerWithFakeConsole(IO.raiseError(new EOFException()))
