@@ -1,13 +1,30 @@
 package com.github.pete1232.lox
 
+import com.github.pete1232.lox.errors.InterpreterError
+
 trait Interpreter[T]:
-  extension (t: T) def interpret: LoxValue
+  extension (t: T) def interpret: Either[InterpreterError, LoxValue]
 
 object Interpreter:
 
   given Interpreter[Expression] with
     extension (expr: Expression)
-      def interpret: LoxValue = expr match
-        case l: Expression.Literal => l.value
+      def interpret: Either[InterpreterError, LoxValue] = expr match
+        case l: Expression.Literal => Right(l.value)
         case g: Expression.Group   => g.expression.interpret
-        case _                     => ???
+        case u: Expression.Unary   =>
+          u.operator match
+            case Token.SingleCharacter.Minus =>
+              u.right.interpret.flatMap { result =>
+                result match
+                  case dbl: Double => Right(-dbl)
+                  case v           =>
+                    Left(
+                      InterpreterError.UnaryCastError(
+                        v,
+                        Token.SingleCharacter.Minus,
+                      )
+                    )
+              }
+            case Token.SingleCharacter.Bang  => ??? // todo
+        case _                     => ??? // todo exhaustive match

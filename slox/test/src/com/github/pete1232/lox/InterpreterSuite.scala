@@ -1,6 +1,7 @@
 package com.github.pete1232.lox
 
 import com.github.pete1232.lox.Interpreter.given
+import com.github.pete1232.lox.errors.InterpreterError
 
 import cats.Show
 import org.scalacheck.Gen
@@ -20,7 +21,7 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
 
   test("evaluating a literal should return its value") {
     forall(loxValueGen) { v =>
-      expect(Expression.Literal(v).interpret == v)
+      expect(Expression.Literal(v).interpret == Right(v))
     }
   }
 
@@ -31,3 +32,29 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
     }
   }
   // todo group with other nested expressions
+
+  test("evaluate a unary `-` expression with a numeric right operand") {
+    forall(Gen.double) { v =>
+      val expr =
+        Expression.Unary(Token.SingleCharacter.Minus, Expression.Literal(v))
+      expect(expr.interpret == Right(-v))
+    }
+  }
+
+  pureTest("error when the right operand of a `-` unary is not a number") {
+    val expr = Expression.Unary(
+      Token.SingleCharacter.Minus,
+      Expression.Literal("teststring"),
+    )
+    expect(
+      expr.interpret == Left(
+        InterpreterError.UnaryCastError(
+          "teststring",
+          Token.SingleCharacter.Minus,
+        )
+      )
+    )
+  }
+  // todo unary with `!`
+  // todo unary with other nested expressions
+end InterpreterSuite
