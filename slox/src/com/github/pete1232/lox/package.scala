@@ -1,6 +1,7 @@
 package com.github.pete1232
 
 import com.github.pete1232.lox.utils.Showable
+import com.github.pete1232.lox.utils.Showable.given
 
 package object lox:
   type LoxValue = Double | String | Boolean | Null
@@ -9,7 +10,7 @@ package object lox:
     extension (lv: LoxValue)
       def show: String =
         lv match
-          case d: Double  => d.show
-          case s: String  => s.show
-          case b: Boolean => b.show
-          case _          => "null"
+          case d: Double  => summon[Showable[Double]].show(d)
+          case s: String  => summon[Showable[String]].show(s)
+          case b: Boolean => summon[Showable[Boolean]].show(b)
+          case null       => summon[Showable[Null]].show(null)
