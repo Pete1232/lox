@@ -1,14 +1,13 @@
 package com.github.pete1232.lox.errors
 
 import com.github.pete1232.lox.Token
-
-import cats.Show
+import com.github.pete1232.lox.utils.Showable
 
 enum ParserError(val message: String, val lineNumber: Int) extends Throwable:
 
   case UnmatchedTokenError(expressionType: String, line: Int, token: Token)
       extends ParserError(
-        s"Error trying to parse ${summon[Show[Token]].show(token)} as $expressionType.",
+        s"Error trying to parse ${token.show} as $expressionType.",
         line,
       )
 
@@ -37,7 +36,8 @@ enum ParserError(val message: String, val lineNumber: Int) extends Throwable:
       )
 
 object ParserError:
-  given Show[ParserError] = Show.show { error =>
-    import error.*
-    s"[line $lineNumber] Error in parser: $message"
-  }
+  given Showable[ParserError] with
+    extension (error: ParserError)
+      def show: String =
+        import error.*
+        s"[line $lineNumber] Error in parser: $message"

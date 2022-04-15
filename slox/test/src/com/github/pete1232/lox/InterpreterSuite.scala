@@ -2,8 +2,8 @@ package com.github.pete1232.lox
 
 import com.github.pete1232.lox.Interpreter.given
 import com.github.pete1232.lox.errors.InterpreterError
+import com.github.pete1232.lox.utils.Showable.given
 
-import cats.Show
 import org.scalacheck.Gen
 import weaver.SimpleIOSuite
 import weaver.scalacheck.Checkers
@@ -16,8 +16,6 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
     Gen.oneOf(true, false),
     Gen.const(null),
   )
-
-  given Show[LoxValue] = Show.fromToString
 
   test("evaluating a literal should return its value") {
     forall(loxValueGen) { v =>
@@ -57,4 +55,3 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
   }
   // todo unary with `!`
   // todo unary with other nested expressions
-end InterpreterSuite

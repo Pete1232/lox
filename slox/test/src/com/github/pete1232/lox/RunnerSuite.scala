@@ -5,7 +5,6 @@ import com.github.pete1232.lox.io.SimpleConsole
 import java.io.EOFException
 import java.nio.charset.Charset
 
-import cats.Show
 import cats.effect.IO
 import cats.effect.std.Console
 import weaver.SimpleIOSuite

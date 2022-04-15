@@ -2,6 +2,7 @@ package com.github.pete1232.lox
 
 import com.github.pete1232.lox.Token.*
 import com.github.pete1232.lox.errors.ScannerError
+import com.github.pete1232.lox.utils.Showable.given
 
 import scala.util.hashing.Hashing.Default
 
@@ -11,10 +12,10 @@ import weaver.scalacheck.Checkers
 
 object ScannerSuite extends SimpleIOSuite with Checkers:
 
-  val singleCharacterTokenGen: Gen[Token.SingleCharacter] =
+  val singleCharacterTokenGen: Gen[Token] =
     Gen.oneOf(Token.SingleCharacter.values)
 
-  val twoCharacterTokenGen: Gen[Token.TwoCharacter] =
+  val twoCharacterTokenGen: Gen[Token] =
     Gen.oneOf(Token.TwoCharacter.values)
 
   test("scan tokens with a single character") {
@@ -344,7 +345,7 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
   }
 
   test("parse any valid keywords") {
-    val keywordGen: Gen[Token.Keyword] = Gen.oneOf(
+    val keywordGen: Gen[Token] = Gen.oneOf(
       Token.Keyword.values
     )
 

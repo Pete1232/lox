@@ -1,26 +1,20 @@
 package com.github.pete1232.lox
 
-import cats.Show
+import com.github.pete1232.lox.utils.Showable
 
 sealed trait Token:
   def lexeme: String
   final val length: Int = lexeme.length
 
-final case class TokenWithContext(token: Token, context: TokenContext)
-
-object TokenWithContext:
-  given Show[TokenWithContext] =
-    Show.show(tc => Show[Token].show(tc.token))
-
-final case class TokenContext(lineCount: Int)
-
 object Token:
 
-  given Show[Token] =
-    Show.show(t => s"${t.toString} for lexeme ${t.lexeme}")
+  given Showable[Token] with
+    extension (t: Token)
+      def show: String =
+        s"${t.toString} for lexeme ${t.lexeme}"
 
-  given [T <: Token](using showToken: Show[Token]): Show[T] =
-    Show.show(showToken.show)
+  // given [T <: Token](using showableToken: Showable[Token]): Showable[T] =
+  //   Showable.show(showableToken.show)
 
   enum SingleCharacter(final val lexeme: String) extends Token:
     case LeftParen  extends SingleCharacter("(")
@@ -96,3 +90,11 @@ object Token:
       Keyword.values.find(_.lexeme == s)
 
 end Token
+
+final case class TokenWithContext(token: Token, context: TokenContext)
+
+object TokenWithContext:
+  given Showable[TokenWithContext] with
+    extension (tc: TokenWithContext) def show: String = tc.token.show
+
+final case class TokenContext(lineCount: Int)

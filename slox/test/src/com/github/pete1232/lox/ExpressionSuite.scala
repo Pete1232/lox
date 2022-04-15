@@ -1,6 +1,5 @@
 package com.github.pete1232.lox
 
-import cats.Show
 import weaver.SimpleIOSuite
 
 object ExpressionSuite extends SimpleIOSuite:
@@ -18,7 +17,7 @@ object ExpressionSuite extends SimpleIOSuite:
         ),
       )
 
-    val result = Show[Expression].show(expression)
+    val result = expression.show
 
     expect(result == "(* (- 123.0) (group 45.67))")
   }

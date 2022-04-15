@@ -7,10 +7,10 @@ import scala.io.Source
 import java.io.EOFException
 import java.nio.file.{Files, NoSuchFileException, Path}
 
-import cats.Show
 import cats.data.EitherT
 import cats.effect.{ExitCode, IO, IOApp}
-import cats.implicits.*
+import cats.syntax.all.catsSyntaxApplicativeError
+import cats.syntax.all.catsSyntaxNestedFoldable
 
 final case class Runner(scanner: Scanner, parser: Parser)(using
     console: SimpleConsole[IO]
@@ -20,7 +20,7 @@ final case class Runner(scanner: Scanner, parser: Parser)(using
     args match
       case Nil       => runPrompt()
       case hd :: Nil => runFile(hd)
-      case _         => IO.println("Usage: slox [script]").as(ExitCode(64))
+      case _         => console.println("Usage: slox [script]").as(ExitCode(64))
 
   private def runFile(path: String): IO[ExitCode] =
     IO
@@ -43,7 +43,7 @@ final case class Runner(scanner: Scanner, parser: Parser)(using
       scanner.scan(source).partitionMap(identity)
     if scannerErrors.nonEmpty then
       scannerErrors
-        .map(IO.println)
+        .map(console.println)
         .sequence_
         .as(ExitCode(65))
     else
@@ -51,20 +51,22 @@ final case class Runner(scanner: Scanner, parser: Parser)(using
         parser.parse(scannedTokens).partitionMap(identity)
       if parserErrors.nonEmpty then
         parserErrors
-          .map(IO.println)
+          .map(console.println)
           .sequence_
           .as(ExitCode.Error)
-      else parsedExpressions.map(IO.println).sequence_.as(ExitCode.Success)
+      else parsedExpressions.map(console.println).sequence_.as(ExitCode.Success)
 
   object ErrorHandler:
 
     val repl: PartialFunction[Throwable, IO[ExitCode]] = {
-      case _: EOFException => IO.println(":quit").as(ExitCode.Success)
+      case _: EOFException => console.println(":quit").as(ExitCode.Success)
     }
 
     val file: PartialFunction[Throwable, IO[ExitCode]] = {
       case nsfe: NoSuchFileException =>
-        IO.println(s"File not found at path ${nsfe.getFile}").as(ExitCode.Error)
+        console
+          .println(s"File not found at path ${nsfe.getFile}")
+          .as(ExitCode.Error)
     }
 
 end Runner

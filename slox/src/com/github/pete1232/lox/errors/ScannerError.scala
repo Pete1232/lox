@@ -1,8 +1,7 @@
 package com.github.pete1232.lox.errors
 
 import com.github.pete1232.lox.Scanner
-
-import cats.Show
+import com.github.pete1232.lox.utils.Showable
 
 enum ScannerError(val message: String, val lexeme: String, val lineNumber: Int)
     extends Throwable:
@@ -57,7 +56,8 @@ enum ScannerError(val message: String, val lexeme: String, val lineNumber: Int)
 end ScannerError
 
 object ScannerError:
-  given Show[ScannerError] = Show.show { error =>
-    import error.*
-    s"[line $lineNumber] Error in scanner at '$lexeme': $message"
-  }
+  given Showable[ScannerError] with
+    extension (error: ScannerError)
+      def show: String =
+        import error.*
+        s"[line $lineNumber] Error in scanner at '$lexeme': $message"

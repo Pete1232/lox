@@ -1,8 +1,10 @@
 package com.github.pete1232.lox
 
 import com.github.pete1232.lox.errors.ParserError
+import com.github.pete1232.lox.utils.Showable
+import com.github.pete1232.lox.utils.Showable.given
 
-import cats.implicits.*
+import cats.syntax.all.toTraverseOps
 import org.scalacheck.Gen
 import weaver.SimpleIOSuite
 import weaver.scalacheck.CheckConfig

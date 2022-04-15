@@ -1,8 +1,7 @@
 package com.github.pete1232.lox.errors
 
 import com.github.pete1232.lox.Token
-
-import cats.Show
+import com.github.pete1232.lox.utils.Showable
 
 // todo interpreter errors need more context for line numbers
 enum InterpreterError(val message: String, val lineNumber: Int)
@@ -17,7 +16,9 @@ enum InterpreterError(val message: String, val lineNumber: Int)
       )
 
 object InterpreterError:
-  given Show[InterpreterError] = Show.show { error =>
-    import error.*
-    s"[line $lineNumber] Error in parser: $message"
-  }
+
+  given Showable[InterpreterError] with
+    extension (error: InterpreterError)
+      def show: String =
+        import error.*
+        s"[line $lineNumber] Error in interpreter: $message"
