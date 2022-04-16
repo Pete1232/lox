@@ -3,8 +3,13 @@ package com.github.pete1232
 import com.github.pete1232.lox.utils.Showable
 import com.github.pete1232.lox.utils.Showable.given
 
+import cats.effect.IO
+import org.typelevel.log4cats.SelfAwareStructuredLogger
+
 package object lox:
   type LoxValue = Double | String | Boolean | Null
+
+  type Logs = SelfAwareStructuredLogger[IO]
 
   given Showable[LoxValue] with
     extension (lv: LoxValue)

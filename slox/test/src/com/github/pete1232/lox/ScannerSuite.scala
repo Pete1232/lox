@@ -2,6 +2,7 @@ package com.github.pete1232.lox
 
 import com.github.pete1232.lox.Token.*
 import com.github.pete1232.lox.errors.ScannerError
+import com.github.pete1232.lox.utils.LoggerBootstrap
 import com.github.pete1232.lox.utils.Showable.given
 
 import scala.util.hashing.Hashing.Default
@@ -18,23 +19,33 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
   val twoCharacterTokenGen: Gen[Token] =
     Gen.oneOf(Token.TwoCharacter.values)
 
+  val scanner = DefaultScanner(using LoggerBootstrap.getUnsafeLogger())
+
   test("scan tokens with a single character") {
     forall(singleCharacterTokenGen) { token =>
-      val result = DefaultScanner.scan(token.lexeme).flatMap(_.toSeq)
-      expect(result == List(TokenWithContext(token, TokenContext(0))))
+      for result <- scanner.scan(token.lexeme)
+      yield expect(
+        result.flatMap(_.toSeq) == List(
+          TokenWithContext(token, TokenContext(0))
+        )
+      )
     }
   }
 
   test("scan tokens with two characters") {
     forall(twoCharacterTokenGen) { token =>
-      val result = DefaultScanner.scan(token.lexeme).flatMap(_.toSeq)
-      expect(result == List(TokenWithContext(token, TokenContext(0))))
+      for result <- scanner.scan(token.lexeme)
+      yield expect(
+        result.flatMap(_.toSeq) == List(
+          TokenWithContext(token, TokenContext(0))
+        )
+      )
     }
   }
 
-  pureTest("report an error for an unknown character") {
-    val hashResult = DefaultScanner.scan("#")
-    expect(
+  test("report an error for an unknown character") {
+    for hashResult <- scanner.scan("#")
+    yield expect(
       hashResult == List(
         Left(
           ScannerError.InvalidFirstCharacter(
@@ -46,9 +57,9 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     )
   }
 
-  pureTest("report an error for an unknown character after another token") {
-    val hashResult = DefaultScanner.scan("!#")
-    expect(
+  test("report an error for an unknown character after another token") {
+    for hashResult <- scanner.scan("!#")
+    yield expect(
       hashResult == List(
         Right(TokenWithContext(Token.SingleCharacter.Bang, TokenContext(0))),
         Left(
@@ -63,16 +74,16 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
 
   test("ignore everything on a comment line") {
     forall(Gen.alphaStr) { s =>
-      val commentResult = DefaultScanner.scan("//" + s)
-      expect(commentResult == Nil)
+      for commentResult <- scanner.scan("//" + s)
+      yield expect(commentResult == Nil)
     }
   }
 
-  pureTest("ignore whitespace between tokens") {
+  test(s"ignore whitespace between tokens") {
     import Token.SingleCharacter.*
-    val result = DefaultScanner.scan("\r(\t= = )\n{ } ;").map(_.map(_.token))
-    expect(
-      result == List(
+    for result <- scanner.scan("\r(\t= = )\n{ } ;")
+    yield expect(
+      result.map(_.map(_.token)) == List(
         Right(LeftParen),
         Right(Equal),
         Right(Equal),
@@ -84,10 +95,10 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     )
   }
 
-  pureTest("report the line correctly") {
+  test("report the line correctly") {
     import Token.SingleCharacter.*
-    val result = DefaultScanner.scan("+\n* \n / // this is a comment \n- #")
-    expect(
+    for result <- scanner.scan("+\n* \n / // this is a comment \n- #")
+    yield expect(
       result == List(
         Right(TokenWithContext(Plus, TokenContext(0))),
         Right(TokenWithContext(Star, TokenContext(1))),
@@ -103,10 +114,10 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     )
   }
 
-  pureTest("parse single character tokens with no spacing") {
+  test("parse single character tokens with no spacing") {
     import Token.SingleCharacter.*
-    val result = DefaultScanner.scan("*+-/")
-    expect(
+    for result <- scanner.scan("*+-/")
+    yield expect(
       result == List(
         Right(TokenWithContext(Star, TokenContext(0))),
         Right(TokenWithContext(Plus, TokenContext(0))),
@@ -116,13 +127,12 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     )
   }
 
-  pureTest(
+  test(
     "error if a valid single character token is followed by an invalid one"
   ) {
     import Token.SingleCharacter.*
-    val result = DefaultScanner.scan("+% /@- !£")
-
-    expect(
+    for result <- scanner.scan("+% /@- !£")
+    yield expect(
       result == List(
         Right(TokenWithContext(Plus, TokenContext(0))),
         Left(
@@ -153,10 +163,10 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     )
   }
 
-  pureTest("parse two character tokens with no spacing") {
+  test("parse two character tokens with no spacing") {
     import Token.TwoCharacter.*
-    val result = DefaultScanner.scan("==!=>=")
-    expect(
+    for result <- scanner.scan("==!=>=")
+    yield expect(
       result == List(
         Right(TokenWithContext(EqualEqual, TokenContext(0))),
         Right(TokenWithContext(BangEqual, TokenContext(0))),
@@ -165,13 +175,12 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     )
   }
 
-  pureTest("error if a two character token is followed by an invalid one") {
+  test("error if a two character token is followed by an invalid one") {
     import Token.SingleCharacter.*
     import Token.TwoCharacter.*
 
-    val result = DefaultScanner.scan("==* ==^;&")
-
-    expect(
+    for result <- scanner.scan("==* ==^;&")
+    yield expect(
       result == List(
         Right(TokenWithContext(EqualEqual, TokenContext(0))),
         Right(TokenWithContext(Star, TokenContext(0))),
@@ -189,9 +198,9 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
   test("parse a string literal") {
     forall(Gen.alphaStr) { str =>
       val inputString = "\"" + str + "\""
-      val result      = DefaultScanner.scan(inputString).map(_.map(_.token))
-      expect(
-        result == List(
+      for result <- scanner.scan(inputString)
+      yield expect(
+        result.map(_.map(_.token)) == List(
           Right(
             LiteralString(
               inputString,
@@ -203,11 +212,11 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     }
   }
 
-  pureTest("parse a string literal with an escaped quote") {
+  test("parse a string literal with an escaped quote") {
     val inputString = "\"" + "abc123\\\"" + "\""
-    val result      = DefaultScanner.scan(inputString).map(_.map(_.token))
-    expect(
-      result == List(
+    for result <- scanner.scan(inputString)
+    yield expect(
+      result.map(_.map(_.token)) == List(
         Right(
           LiteralString(
             inputString,
@@ -218,9 +227,9 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     )
   }
 
-  pureTest("error when a string literal doesn't have a closing quote") {
-    val result = DefaultScanner.scan("\"" + "abc123")
-    expect(
+  test("error when a string literal doesn't have a closing quote") {
+    for result <- scanner.scan("\"" + "abc123")
+    yield expect(
       result == List(
         Left(
           ScannerError.LiteralStringNotClosed(
@@ -232,11 +241,11 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     )
   }
 
-  pureTest(
+  test(
     "error when a string literal doesn't have a closing quote on the same line"
   ) {
-    val result = DefaultScanner.scan("\"" + "abc123" + "\n" + "\"")
-    expect(
+    for result <- scanner.scan("\"" + "abc123" + "\n" + "\"")
+    yield expect(
       result == List(
         Left(
           ScannerError.LiteralStringNotClosed(
@@ -256,11 +265,10 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
 
   test("parse a valid positive long as a numeric literal") {
     forall(Gen.posNum[Long]) { num =>
-      val result = DefaultScanner
-        .scan(num.toString + " \"another token\"")
-        .map(_.map(_.token))
-      expect(
-        result == List(
+      for result <- scanner
+          .scan(num.toString + " \"another token\"")
+      yield expect(
+        result.map(_.map(_.token)) == List(
           Right(
             LiteralNumber(
               num.toString,
@@ -280,11 +288,10 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
 
   test("parse a valid positive double as a numeric literal") {
     forall(Gen.posNum[Double]) { num =>
-      val result = DefaultScanner
-        .scan(num.toString + "\n\"another token\"")
-        .map(_.map(_.token))
-      expect(
-        result == List(
+      for result <- scanner
+          .scan(num.toString + "\n\"another token\"")
+      yield expect(
+        result.map(_.map(_.token)) == List(
           Right(
             LiteralNumber(
               num.toString,
@@ -302,9 +309,9 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     }
   }
 
-  pureTest("error when a numeric isn't closed properly by a space") {
-    val result = DefaultScanner.scan("123a")
-    expect(
+  test("error when a numeric isn't closed properly by a space") {
+    for result <- scanner.scan("123a")
+    yield expect(
       result == List(
         Left(
           ScannerError.LiteralNumberBadCharacter(
@@ -330,9 +337,9 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     forall(
       identifierGen.filterNot(Token.Keyword.values.map(_.lexeme).contains)
     ) { str =>
-      val result = DefaultScanner.scan(str).map(_.map(_.token))
-      expect(
-        result == List(
+      for result <- scanner.scan(str)
+      yield expect(
+        result.map(_.map(_.token)) == List(
           Right(
             LiteralIdentifier(
               str,
@@ -350,9 +357,9 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     )
 
     forall(keywordGen) { k =>
-      val result = DefaultScanner.scan(k.lexeme).map(_.map(_.token))
-      expect(
-        result == List(
+      for result <- scanner.scan(k.lexeme)
+      yield expect(
+        result.map(_.map(_.token)) == List(
           Right(
             k
           )
@@ -361,10 +368,9 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     }
   }
 
-  pureTest("error if the token does not exist and isn't a valid identifier") {
-    val result = DefaultScanner.scan("@ 1t\t_tes\rtest!")
-
-    expect(
+  test("error if the token does not exist and isn't a valid identifier") {
+    for result <- scanner.scan("@ 1t\t_tes\rtest!")
+    yield expect(
       result == List(
         Left(
           ScannerError.InvalidFirstCharacter(
@@ -394,14 +400,13 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     )
   }
 
-  pureTest("parse strings up to a space on errors") {
+  test("parse strings up to a space on errors") {
     import Token.SingleCharacter.*
     import Token.TwoCharacter.*
 
-    val result =
-      DefaultScanner.scan("_test !@1 *a* !=a, 123a5 123.4.5 test!id var~if")
-
-    expect(
+    for result <-
+        scanner.scan("_test !@1 *a* !=a, 123a5 123.4.5 test!id var~if")
+    yield expect(
       result == List(
         Left(
           ScannerError.InvalidFirstCharacter(
@@ -464,13 +469,11 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     )
   }
 
-  pureTest("allow single-line comments with /**/ syntax") {
-    val result = DefaultScanner
-      .scan("var a = /*a single line / * comment*/ 1")
-      .map(_.map(_.token))
-
-    expect(
-      result == List(
+  test("allow single-line comments with /**/ syntax") {
+    for result <- scanner
+        .scan("var a = /*a single line / * comment*/ 1")
+    yield expect(
+      result.map(_.map(_.token)) == List(
         Right(
           Token.Keyword.Var
         ),
@@ -483,11 +486,11 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     )
   }
 
-  pureTest("allow multi-line comments") {
-    val result = DefaultScanner.scan(
-      "var a = /*a \n multi \n line / \n * comment*/ 1"
-    )
-    expect(
+  test("allow multi-line comments") {
+    for result <- scanner.scan(
+        "var a = /*a \n multi \n line / \n * comment*/ 1"
+      )
+    yield expect(
       result == List(
         Right(TokenWithContext(Token.Keyword.Var, TokenContext(0))),
         Right(TokenWithContext(LiteralIdentifier("a", "a"), TokenContext(0))),
@@ -497,9 +500,9 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     )
   }
 
-  pureTest("error on unclosed comments") {
-    val result = DefaultScanner.scan("/* test")
-    expect(
+  test("error on unclosed comments") {
+    for result <- scanner.scan("/* test")
+    yield expect(
       result == List(
         Left(
           ScannerError.UnclosedComment(0, "/* test")
@@ -508,11 +511,11 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     )
   }
 
-  pureTest(
+  test(
     "parse a single character token that can also start a two character"
   ) {
-    val result = DefaultScanner.scan("1<3")
-    expect(
+    for result <- scanner.scan("1<3")
+    yield expect(
       result == List(
         Right(TokenWithContext(Token.LiteralNumber("1", 1), TokenContext(0))),
         Right(TokenWithContext(Token.SingleCharacter.Less, TokenContext(0))),
@@ -521,9 +524,9 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     )
   }
 
-  pureTest("allow simple numeric expressions with no spacing") {
-    val result = DefaultScanner.scan("1!=2<3")
-    expect(
+  test("allow simple numeric expressions with no spacing") {
+    for result <- scanner.scan("1!=2<3")
+    yield expect(
       result == List(
         Right(TokenWithContext(Token.LiteralNumber("1", 1), TokenContext(0))),
         Right(TokenWithContext(Token.TwoCharacter.BangEqual, TokenContext(0))),
@@ -534,18 +537,18 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     )
   }
 
-  pureTest("do not allow a numeric literal with an alpha-numeric character") {
-    val result = DefaultScanner.scan("123abc")
-    expect(
+  test("do not allow a numeric literal with an alpha-numeric character") {
+    for result <- scanner.scan("123abc")
+    yield expect(
       result == List(
         Left(ScannerError.LiteralNumberBadCharacter(0, "123abc"))
       )
     )
   }
 
-  pureTest("allow simple string expressions with no spacing") {
-    val result = DefaultScanner.scan("\"a\"!=\"b\"")
-    expect(
+  test("allow simple string expressions with no spacing") {
+    for result <- scanner.scan("\"a\"!=\"b\"")
+    yield expect(
       result == List(
         Right(
           TokenWithContext(Token.LiteralString("\"a\"", "a"), TokenContext(0))

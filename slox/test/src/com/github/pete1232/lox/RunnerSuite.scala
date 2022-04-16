@@ -15,7 +15,7 @@ object RunnerSuite extends SimpleIOSuite:
   object MockScanner extends Scanner:
     def scan(
         source: String
-    ): List[Either[errors.ScannerError, TokenWithContext]] = Nil
+    ): IO[List[Either[errors.ScannerError, TokenWithContext]]] = IO.pure(Nil)
 
   object MockParser extends Parser:
     def parse(

@@ -46,22 +46,25 @@ final case class Runner(
     yield result).recoverWith(ErrorHandler.repl)
 
   private def runScan(source: String): IO[ExitCode] =
-    val (scannerErrors, scannedTokens) =
-      scanner.scan(source).partitionMap(identity)
-    if scannerErrors.nonEmpty then
-      scannerErrors
-        .map(console.println)
-        .sequence_
-        .as(ExitCode(65))
-    else
-      val (parserErrors, parsedExpressions) =
-        parser.parse(scannedTokens).partitionMap(identity)
-      if parserErrors.nonEmpty then
-        parserErrors
+    scanner.scan(source).flatMap { scanResult =>
+      val (scannerErrors, scannedTokens) =
+        scanResult.partitionMap(identity)
+      if scannerErrors.nonEmpty then
+        scannerErrors
           .map(console.println)
           .sequence_
-          .as(ExitCode.Error)
-      else parsedExpressions.map(console.println).sequence_.as(ExitCode.Success)
+          .as(ExitCode(65))
+      else
+        val (parserErrors, parsedExpressions) =
+          parser.parse(scannedTokens).partitionMap(identity)
+        if parserErrors.nonEmpty then
+          parserErrors
+            .map(console.println)
+            .sequence_
+            .as(ExitCode.Error)
+        else
+          parsedExpressions.map(console.println).sequence_.as(ExitCode.Success)
+    }
 
   object ErrorHandler:
 
