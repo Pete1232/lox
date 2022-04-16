@@ -11,10 +11,9 @@ object Token:
   given Showable[Token] with
     extension (t: Token)
       def show: String =
-        s"${t.toString} for lexeme ${t.lexeme}"
-
-  // given [T <: Token](using showableToken: Showable[Token]): Showable[T] =
-  //   Showable.show(showableToken.show)
+        val className = t.getClass.getSimpleName
+        val out       = if className != null then className else "Unknown"
+        s"$out for lexeme ${t.lexeme}"
 
   enum SingleCharacter(final val lexeme: String) extends Token:
     case LeftParen  extends SingleCharacter("(")

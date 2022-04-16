@@ -12,7 +12,7 @@ object Expression:
     extension (e: Expression)
       def show: String =
         e match
-          case l: Literal => l.value.toString
+          case l: Literal => l.value.show
           case g: Group   => "(" + "group " + g.expression.show + ")"
           case u: Unary   => "(" + u.operator.lexeme + " " + u.right.show + ")"
           case b: Binary  =>
@@ -23,10 +23,6 @@ object Expression:
   final case class Literal(value: LoxValue)(using
       val context: ExpressionContext
   ) extends Expression
-
-  object Literal:
-    given Showable[Literal] with
-      extension (l: Literal) def show: String = l.value.toString
 
   final case class Group(
       expression: Expression
@@ -58,7 +54,6 @@ object Expression:
       right: Expression,
   )(using val context: ExpressionContext)
       extends Expression
-end Expression
 
 final case class ExpressionContext(line: Int)
 
