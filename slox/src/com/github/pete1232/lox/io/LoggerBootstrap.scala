@@ -3,7 +3,6 @@ package com.github.pete1232.lox.utils
 import scala.language.unsafeNulls
 
 import cats.effect.IO
-import cats.effect.kernel.Sync
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
@@ -16,8 +15,10 @@ trait LoggerBootstrap:
   def getUnsafeLogger(): SelfAwareStructuredLogger[IO]
 
 object LoggerBootstrap:
-  def create(): IO[SelfAwareStructuredLogger[IO]] =
+  inline def create(): IO[SelfAwareStructuredLogger[IO]] =
+    import scala.language.unsafeNulls
     Slf4jLogger.create[IO]
 
-  def getUnsafeLogger(): SelfAwareStructuredLogger[IO] =
+  inline def getUnsafeLogger(): SelfAwareStructuredLogger[IO] =
+    import scala.language.unsafeNulls
     Slf4jLogger.getLogger[IO]

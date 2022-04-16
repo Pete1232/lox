@@ -4,19 +4,23 @@ import com.github.pete1232.lox.errors.ScannerError
 import com.github.pete1232.lox.utils.*
 
 import cats.effect.IO
+import org.typelevel.log4cats.Logger
 
 trait Scanner:
   def scan(source: String): IO[List[Either[ScannerError, TokenWithContext]]]
 
-final class DefaultScanner(using logger: Logs) extends Scanner:
+object DefaultScanner extends Scanner:
   def scan(source: String): IO[List[Either[ScannerError, TokenWithContext]]] =
-    scanLoop(source, 0, Nil)
+    for
+      logger <- LoggerBootstrap.create()
+      result <- scanLoop(source, 0, Nil)(using logger)
+    yield result
 
   private def scanLoop(
       remainingInput: String,
       currentLine: Int,
       results: List[Either[ScannerError, TokenWithContext]],
-  ): IO[List[Either[ScannerError, TokenWithContext]]] =
+  )(using Logger[IO]): IO[List[Either[ScannerError, TokenWithContext]]] =
     import ScannerResult.*
 
     val firstCharacter              = remainingInput.headOption
@@ -29,7 +33,7 @@ final class DefaultScanner(using logger: Logs) extends Scanner:
     def singleCharacterResult(
         char: Char
     ): IO[Either[ScannerError, ScannerResult]] =
-      logger.debug(s"Scanning $char as a single character token") *>
+      Logger[IO].debug(s"Scanning $char as a single character token") *>
         IO.pure(
           Token.SingleCharacter
             .fromString(char.toString)
@@ -43,7 +47,7 @@ final class DefaultScanner(using logger: Logs) extends Scanner:
         )
 
     def twoCharacterResult(lexeme: String) =
-      logger.debug(s"Scanning $lexeme as a two character token") *>
+      Logger[IO].debug(s"Scanning $lexeme as a two character token") *>
         IO.pure(
           Token.TwoCharacter
             .fromString(lexeme)
@@ -101,7 +105,7 @@ final class DefaultScanner(using logger: Logs) extends Scanner:
         remaining: String,
         result: String = "",
     ): IO[Either[ScannerError, String]] =
-      logger.debug("Consuming an identifier") *> {
+      Logger[IO].debug("Consuming an identifier") *> {
         remaining.headOption match
           case None                      =>
             IO.pure(Right(result))
@@ -126,7 +130,7 @@ final class DefaultScanner(using logger: Logs) extends Scanner:
         result: String = "",
         hasDecimalPoint: Boolean = false,
     ): IO[Either[ScannerError, String]] =
-      logger.debug("Consuming an identifier") *> {
+      Logger[IO].debug("Consuming an identifier") *> {
         remaining.headOption match
           case None                      => IO.pure(Right(result))
           case Some(c) if c.isWhitespace => IO.pure(Right(result))

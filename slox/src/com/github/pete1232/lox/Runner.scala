@@ -1,6 +1,7 @@
 package com.github.pete1232.lox
 
 import com.github.pete1232.lox.io.SimpleConsole
+import com.github.pete1232.lox.utils.LoggerBootstrap
 
 import scala.io.Source
 
@@ -11,24 +12,27 @@ import cats.data.EitherT
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.syntax.all.catsSyntaxApplicativeError
 import cats.syntax.all.catsSyntaxNestedFoldable
-import org.typelevel.log4cats.SelfAwareStructuredLogger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
+import org.typelevel.log4cats.Logger
 
 final case class Runner(
     scanner: Scanner,
     parser: Parser,
-    logger: SelfAwareStructuredLogger[IO],
 )(using
     console: SimpleConsole[IO]
 ):
 
   final def run(args: List[String]): IO[ExitCode] =
-    args match
-      case Nil       => runPrompt()
-      case hd :: Nil => runFile(hd)
-      case _         => console.println("Usage: slox [script]").as(ExitCode(64))
+    for
+      logger <- LoggerBootstrap.create()
+      result <- {
+        args match
+          case Nil       => runPrompt(using logger)
+          case hd :: Nil => runFile(hd)(using logger)
+          case _ => console.println("Usage: slox [script]").as(ExitCode(64))
+      }
+    yield result
 
-  private def runFile(path: String): IO[ExitCode] =
+  private def runFile(path: String)(using Logger[IO]): IO[ExitCode] =
     IO
       .blocking(Files.readString(Path.of(path)))
       .flatMap { s =>
@@ -36,13 +40,13 @@ final case class Runner(
       }
       .recoverWith(ErrorHandler.file)
 
-  private def runPrompt(): IO[ExitCode] =
+  private def runPrompt(using Logger[IO]): IO[ExitCode] =
     (for
       _      <- console.print("> ")
       l      <- console.readLine
-      _      <- logger.debug(s"Parsed line $l")
+      _      <- Logger[IO].debug(s"Parsed line $l")
       _      <- runScan(l)
-      result <- runPrompt()
+      result <- runPrompt
     yield result).recoverWith(ErrorHandler.repl)
 
   private def runScan(source: String): IO[ExitCode] =

@@ -19,7 +19,7 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
   val twoCharacterTokenGen: Gen[Token] =
     Gen.oneOf(Token.TwoCharacter.values)
 
-  val scanner = DefaultScanner(using LoggerBootstrap.getUnsafeLogger())
+  val scanner = DefaultScanner
 
   test("scan tokens with a single character") {
     forall(singleCharacterTokenGen) { token =>

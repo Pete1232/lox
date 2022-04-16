@@ -13,9 +13,5 @@ import cats.effect.kernel.Resource
 
 object Main extends IOApp:
 
-  val parser = DefaultParser
-
   final def run(args: List[String]): IO[ExitCode] =
-    LoggerBootstrap.create().flatMap { logger =>
-      Runner(new DefaultScanner(using logger), parser, logger).run(args)
-    }
+    Runner(DefaultScanner, DefaultParser).run(args)

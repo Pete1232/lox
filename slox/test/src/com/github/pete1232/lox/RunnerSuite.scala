@@ -23,7 +23,7 @@ object RunnerSuite extends SimpleIOSuite:
     ): List[Either[errors.ParserError, Expression]] = Nil
 
   val runner =
-    Runner(MockScanner, MockParser, LoggerBootstrap.getUnsafeLogger())
+    Runner(MockScanner, MockParser)
 
   test("error when the file is not found") {
     for exitCode <- runner.run(List("slox/test/resources/Missing.lox"))
@@ -41,7 +41,7 @@ object RunnerSuite extends SimpleIOSuite:
   }
 
   def runnerWithFakeConsole(in: IO[String]) =
-    Runner(MockScanner, MockParser, LoggerBootstrap.getUnsafeLogger())(using
+    Runner(MockScanner, MockParser)(using
       SimpleConsole.fakeConsole(IO.unit, in)
     )
 
