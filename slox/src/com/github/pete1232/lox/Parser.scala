@@ -60,7 +60,9 @@ object DefaultParser extends Parser:
                   (Left(error), remainingTokens)
                 case (Right(rightExpr), remainingTokens) =>
                   leftAssociativeLoop(
-                    Expression.Binary(leftExpr, operatorToken, rightExpr),
+                    Expression.Binary(leftExpr, operatorToken, rightExpr)(
+                      using ExpressionContext(tokenWithContext.context)
+                    ),
                     remainingTokens,
                   )
         case _                      => (Right(leftExpr), tokens)
@@ -105,7 +107,9 @@ object DefaultParser extends Parser:
                       case (Right(rightExpr), remainingTokensAfterRight) =>
                         (
                           Right(
-                            Expression.Ternary(leftExpr, middleExpr, rightExpr)
+                            Expression.Ternary(leftExpr, middleExpr, rightExpr)(
+                              using ExpressionContext(questionToken.context)
+                            )
                           ),
                           remainingTokensAfterRight,
                         )
@@ -177,7 +181,9 @@ object DefaultParser extends Parser:
               case (Right(expression), remainingTokens) =>
                 (
                   Right(
-                    Expression.Unary(t, expression)
+                    Expression.Unary(t, expression)(
+                      using ExpressionContext(tokenWithContext.context)
+                    )
                   ),
                   remainingTokens,
                 )
@@ -189,15 +195,18 @@ object DefaultParser extends Parser:
   private def primary(
       tokens: NonEmptyList[TokenWithContext]
   ): (Either[ParserError, Expression], List[TokenWithContext]) =
+    val expressionContext = ExpressionContext(tokens.head.context)
     tokens.head.token match
-      case Token.Keyword.False =>
-        (Right(Expression.Literal(false)), tokens.tail)
-      case Token.Keyword.True  => (Right(Expression.Literal(true)), tokens.tail)
-      case Token.Keyword.Nil   => (Right(Expression.Literal(null)), tokens.tail)
+      case Token.Keyword.False                                          =>
+        (Right(Expression.Literal(false)(using expressionContext)), tokens.tail)
+      case Token.Keyword.True                                           =>
+        (Right(Expression.Literal(true)(using expressionContext)), tokens.tail)
+      case Token.Keyword.Nil                                            =>
+        (Right(Expression.Literal(null)(using expressionContext)), tokens.tail)
       case Token.LiteralNumber(_, n)                                    =>
-        (Right(Expression.Literal(n)), tokens.tail)
+        (Right(Expression.Literal(n)(using expressionContext)), tokens.tail)
       case Token.LiteralString(_, s)                                    =>
-        (Right(Expression.Literal(s)), tokens.tail)
+        (Right(Expression.Literal(s)(using expressionContext)), tokens.tail)
       case Token.SingleCharacter.LeftParen                              =>
         val (expressionResult, remainingTokens) = expression(tokens.tail)
         expressionResult match
@@ -205,7 +214,10 @@ object DefaultParser extends Parser:
           case Right(expr) =>
             remainingTokens.headOption.map(_.token) match
               case Some(Token.SingleCharacter.RightParen) =>
-                (Right(Expression.Group(expr)), remainingTokens.tail)
+                (
+                  Right(Expression.Group(expr)(using expressionContext)),
+                  remainingTokens.tail,
+                )
               case _                                      =>
                 (
                   Left(
@@ -237,6 +249,8 @@ object DefaultParser extends Parser:
           ),
           tokens.tail,
         )
+    end match
+  end primary
 
   private def binaryOperatorError(
       errorLine: Int,

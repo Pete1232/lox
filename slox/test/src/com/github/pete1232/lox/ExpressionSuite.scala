@@ -4,6 +4,8 @@ import weaver.SimpleIOSuite
 
 object ExpressionSuite extends SimpleIOSuite:
 
+  given ExpressionContext = ExpressionContext(0)
+
   pureTest("show an expression") {
     val expression =
       Expression.Binary(

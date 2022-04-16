@@ -3,7 +3,8 @@ package com.github.pete1232.lox
 import com.github.pete1232.lox.Token
 import com.github.pete1232.lox.utils.Showable
 
-sealed trait Expression
+sealed trait Expression:
+  def context: ExpressionContext
 
 object Expression:
 
@@ -19,8 +20,8 @@ object Expression:
           case t: Ternary =>
             "(" + t.left.show + " ? " + t.middle.show + " : " + t.right.show + ")"
 
-  final case class Literal(
-      value: LoxValue
+  final case class Literal(value: LoxValue)(using
+      val context: ExpressionContext
   ) extends Expression
 
   object Literal:
@@ -29,13 +30,15 @@ object Expression:
 
   final case class Group(
       expression: Expression
-  ) extends Expression
+  )(using val context: ExpressionContext)
+      extends Expression
 
   final case class Unary(
       operator: Token.SingleCharacter.Minus.type |
         Token.SingleCharacter.Bang.type,
       right: Expression,
-  ) extends Expression
+  )(using val context: ExpressionContext)
+      extends Expression
 
   type BinaryOperator = Token.TwoCharacter | Token.SingleCharacter.Less.type |
     Token.SingleCharacter.Greater.type | Token.SingleCharacter.Plus.type |
@@ -46,10 +49,20 @@ object Expression:
       left: Expression,
       operator: BinaryOperator,
       right: Expression,
-  ) extends Expression
+  )(using val context: ExpressionContext)
+      extends Expression
 
   final case class Ternary(
       left: Expression,
       middle: Expression,
       right: Expression,
-  ) extends Expression
+  )(using val context: ExpressionContext)
+      extends Expression
+end Expression
+
+final case class ExpressionContext(line: Int)
+
+object ExpressionContext:
+  def apply(tokenContext: TokenContext): ExpressionContext = apply(
+    tokenContext.lineCount
+  )

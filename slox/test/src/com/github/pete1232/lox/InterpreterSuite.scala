@@ -17,6 +17,8 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
     Gen.const(null),
   )
 
+  given ExpressionContext = ExpressionContext(0)
+
   test("evaluating a literal should return its value") {
     forall(loxValueGen) { v =>
       expect(Expression.Literal(v).interpret == Right(v))
@@ -55,3 +57,4 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
   }
   // todo unary with `!`
   // todo unary with other nested expressions
+end InterpreterSuite

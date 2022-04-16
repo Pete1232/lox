@@ -15,6 +15,8 @@ object ParserSuite extends SimpleIOSuite with Checkers:
   // large generated expressions can get out of hand quickly
   override val checkConfig = CheckConfig.default.copy(maximumGeneratorSize = 10)
 
+  given ExpressionContext = ExpressionContext(0)
+
   private def simpleToken(token: Token): TokenWithContext =
     TokenWithContext(token, TokenContext(0))
 
