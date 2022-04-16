@@ -1,6 +1,7 @@
 package com.github.pete1232.lox
 
 import com.github.pete1232.lox.io.SimpleConsole
+import com.github.pete1232.lox.utils.LoggerBootstrap
 
 import java.io.EOFException
 import java.nio.charset.Charset
@@ -21,7 +22,8 @@ object RunnerSuite extends SimpleIOSuite:
         tokens: List[TokenWithContext]
     ): List[Either[errors.ParserError, Expression]] = Nil
 
-  val runner = Runner(MockScanner, MockParser)
+  val runner =
+    Runner(MockScanner, MockParser, LoggerBootstrap.getUnsafeLogger())
 
   test("error when the file is not found") {
     for exitCode <- runner.run(List("slox/test/resources/Missing.lox"))
@@ -39,7 +41,7 @@ object RunnerSuite extends SimpleIOSuite:
   }
 
   def runnerWithFakeConsole(in: IO[String]) =
-    Runner(MockScanner, MockParser)(using
+    Runner(MockScanner, MockParser, LoggerBootstrap.getUnsafeLogger())(using
       SimpleConsole.fakeConsole(IO.unit, in)
     )
 

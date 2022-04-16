@@ -5,6 +5,8 @@ object slox extends ScalaModule with ScalafmtModule {
 
   def ivyDeps = Agg(
     ivy"org.typelevel::cats-effect:3.3.11",
+    ivy"org.typelevel::log4cats-slf4j:2.2.0",
+    ivy"ch.qos.logback:logback-classic:1.2.11",
   )
 
   def scalacOptions = Seq(

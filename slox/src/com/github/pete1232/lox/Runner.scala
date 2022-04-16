@@ -11,8 +11,14 @@ import cats.data.EitherT
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.syntax.all.catsSyntaxApplicativeError
 import cats.syntax.all.catsSyntaxNestedFoldable
+import org.typelevel.log4cats.SelfAwareStructuredLogger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 
-final case class Runner(scanner: Scanner, parser: Parser)(using
+final case class Runner(
+    scanner: Scanner,
+    parser: Parser,
+    logger: SelfAwareStructuredLogger[IO],
+)(using
     console: SimpleConsole[IO]
 ):
 
@@ -34,6 +40,7 @@ final case class Runner(scanner: Scanner, parser: Parser)(using
     (for
       _      <- console.print("> ")
       l      <- console.readLine
+      _      <- logger.debug(s"Parsed line $l")
       _      <- runScan(l)
       result <- runPrompt()
     yield result).recoverWith(ErrorHandler.repl)

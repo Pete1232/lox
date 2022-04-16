@@ -1,6 +1,9 @@
 package com.github.pete1232.lox
 
+import com.github.pete1232.lox.utils.LoggerBootstrap
+
 import scala.io.Source
+import scala.util.Try
 
 import java.io.EOFException
 import java.nio.file.{Files, NoSuchFileException, Path}
@@ -12,7 +15,8 @@ object Main extends IOApp:
 
   val scanner = DefaultScanner
   val parser  = DefaultParser
-  val runner  = Runner(scanner, parser)
 
   final def run(args: List[String]): IO[ExitCode] =
-    runner.run(args)
+    LoggerBootstrap.create().flatMap { logger =>
+      Runner(scanner, parser, logger).run(args)
+    }
