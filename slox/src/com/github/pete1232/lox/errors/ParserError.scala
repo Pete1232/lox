@@ -1,6 +1,6 @@
 package com.github.pete1232.lox.errors
 
-import com.github.pete1232.lox.Token
+import com.github.pete1232.lox.models.Token
 import com.github.pete1232.lox.utils.Showable
 
 enum ParserError(val message: String, val lineNumber: Int) extends Throwable:

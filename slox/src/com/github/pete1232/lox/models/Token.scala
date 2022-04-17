@@ -1,4 +1,4 @@
-package com.github.pete1232.lox
+package com.github.pete1232.lox.models
 
 import com.github.pete1232.lox.utils.Showable
 

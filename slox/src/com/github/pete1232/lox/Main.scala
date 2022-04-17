@@ -1,6 +1,6 @@
 package com.github.pete1232.lox
 
-import com.github.pete1232.lox.utils.LoggerBootstrap
+import com.github.pete1232.lox.io.LoggerBootstrap
 
 import scala.io.Source
 import scala.util.Try

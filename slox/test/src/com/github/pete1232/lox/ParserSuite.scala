@@ -1,6 +1,13 @@
 package com.github.pete1232.lox
 
 import com.github.pete1232.lox.errors.ParserError
+import com.github.pete1232.lox.models.{
+  Expression,
+  ExpressionContext,
+  Token,
+  TokenContext,
+  TokenWithContext,
+}
 import com.github.pete1232.lox.utils.Showable
 import com.github.pete1232.lox.utils.Showable.given
 

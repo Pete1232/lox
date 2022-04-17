@@ -1,4 +1,4 @@
-package com.github.pete1232.lox.utils
+package com.github.pete1232.lox.io
 
 import scala.language.unsafeNulls
 

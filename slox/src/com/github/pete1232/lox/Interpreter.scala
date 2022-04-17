@@ -1,6 +1,7 @@
 package com.github.pete1232.lox
 
 import com.github.pete1232.lox.errors.InterpreterError
+import com.github.pete1232.lox.models.{Expression, Token}
 
 trait Interpreter[T]:
   extension (t: T) def interpret: Either[InterpreterError, LoxValue]

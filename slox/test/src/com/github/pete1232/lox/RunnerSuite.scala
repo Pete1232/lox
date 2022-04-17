@@ -1,7 +1,7 @@
 package com.github.pete1232.lox
 
-import com.github.pete1232.lox.io.SimpleConsole
-import com.github.pete1232.lox.utils.LoggerBootstrap
+import com.github.pete1232.lox.io.{LoggerBootstrap, SimpleConsole}
+import com.github.pete1232.lox.models.{Expression, TokenWithContext}
 
 import java.io.EOFException
 import java.nio.charset.Charset

@@ -2,6 +2,7 @@ package com.github.pete1232.lox
 
 import com.github.pete1232.lox.Interpreter.given
 import com.github.pete1232.lox.errors.InterpreterError
+import com.github.pete1232.lox.models.{Expression, ExpressionContext, Token}
 import com.github.pete1232.lox.utils.Showable.given
 
 import org.scalacheck.Gen

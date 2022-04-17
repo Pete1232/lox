@@ -1,5 +1,7 @@
 package com.github.pete1232.lox
 
+import com.github.pete1232.lox.models.{Expression, ExpressionContext, Token}
+
 import weaver.SimpleIOSuite
 
 object ExpressionSuite extends SimpleIOSuite:

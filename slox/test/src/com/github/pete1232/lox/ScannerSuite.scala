@@ -1,11 +1,9 @@
 package com.github.pete1232.lox
 
-import com.github.pete1232.lox.Token.*
 import com.github.pete1232.lox.errors.ScannerError
-import com.github.pete1232.lox.utils.LoggerBootstrap
+import com.github.pete1232.lox.io.LoggerBootstrap
+import com.github.pete1232.lox.models.{Token, TokenContext, TokenWithContext}
 import com.github.pete1232.lox.utils.Showable.given
-
-import scala.util.hashing.Hashing.Default
 
 import org.scalacheck.Gen
 import weaver.SimpleIOSuite
@@ -202,7 +200,7 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
       yield expect(
         result.map(_.map(_.token)) == List(
           Right(
-            LiteralString(
+            Token.LiteralString(
               inputString,
               str,
             )
@@ -218,7 +216,7 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     yield expect(
       result.map(_.map(_.token)) == List(
         Right(
-          LiteralString(
+          Token.LiteralString(
             inputString,
             "abc123\"",
           )
@@ -270,13 +268,13 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
       yield expect(
         result.map(_.map(_.token)) == List(
           Right(
-            LiteralNumber(
+            Token.LiteralNumber(
               num.toString,
               num,
             )
           ),
           Right(
-            LiteralString(
+            Token.LiteralString(
               "\"another token\"",
               "another token",
             )
@@ -293,13 +291,13 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
       yield expect(
         result.map(_.map(_.token)) == List(
           Right(
-            LiteralNumber(
+            Token.LiteralNumber(
               num.toString,
               num,
             )
           ),
           Right(
-            LiteralString(
+            Token.LiteralString(
               "\"another token\"",
               "another token",
             )
@@ -341,7 +339,7 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
       yield expect(
         result.map(_.map(_.token)) == List(
           Right(
-            LiteralIdentifier(
+            Token.LiteralIdentifier(
               str,
               str,
             )
@@ -478,10 +476,10 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
           Token.Keyword.Var
         ),
         Right(
-          LiteralIdentifier("a", "a")
+          Token.LiteralIdentifier("a", "a")
         ),
         Right(Token.SingleCharacter.Equal),
-        Right(LiteralNumber("1", 1)),
+        Right(Token.LiteralNumber("1", 1)),
       )
     )
   }
@@ -493,9 +491,11 @@ object ScannerSuite extends SimpleIOSuite with Checkers:
     yield expect(
       result == List(
         Right(TokenWithContext(Token.Keyword.Var, TokenContext(0))),
-        Right(TokenWithContext(LiteralIdentifier("a", "a"), TokenContext(0))),
+        Right(
+          TokenWithContext(Token.LiteralIdentifier("a", "a"), TokenContext(0))
+        ),
         Right(TokenWithContext(Token.SingleCharacter.Equal, TokenContext(0))),
-        Right(TokenWithContext(LiteralNumber("1", 1), TokenContext(3))),
+        Right(TokenWithContext(Token.LiteralNumber("1", 1), TokenContext(3))),
       )
     )
   }

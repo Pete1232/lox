@@ -1,8 +1,12 @@
 package com.github.pete1232.lox
 
 import com.github.pete1232.lox.errors.ParserError
-
-import scala.reflect.ClassTag
+import com.github.pete1232.lox.models.{
+  ExpressionContext,
+  Token,
+  TokenWithContext,
+}
+import com.github.pete1232.lox.models.Expression
 
 import cats.data.NonEmptyList
 

@@ -1,6 +1,8 @@
-package com.github.pete1232.lox
+package com.github.pete1232.lox.models
 
-import com.github.pete1232.lox.Token
+import com.github.pete1232.lox.LoxValue
+import com.github.pete1232.lox.given
+import com.github.pete1232.lox.models.Token
 import com.github.pete1232.lox.utils.Showable
 
 sealed trait Expression:
