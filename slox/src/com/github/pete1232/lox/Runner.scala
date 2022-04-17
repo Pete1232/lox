@@ -1,6 +1,6 @@
 package com.github.pete1232.lox
 
-import com.github.pete1232.lox.io.LoggerBootstrap
+import com.github.pete1232.lox.io.Logging
 import com.github.pete1232.lox.io.SimpleConsole
 
 import scala.io.Source
@@ -19,18 +19,15 @@ final case class Runner(
     parser: Parser,
 )(using
     console: SimpleConsole[IO]
-):
+) extends Logging:
 
   final def run(args: List[String]): IO[ExitCode] =
-    for
-      logger <- LoggerBootstrap.create()
-      result <- {
-        args match
-          case Nil       => runPrompt(using logger)
-          case hd :: Nil => runFile(hd)(using logger)
-          case _ => console.println("Usage: slox [script]").as(ExitCode(64))
-      }
-    yield result
+    withLogger {
+      args match
+        case Nil       => runPrompt
+        case hd :: Nil => runFile(hd)
+        case _ => console.println("Usage: slox [script]").as(ExitCode(64))
+    }
 
   private def runFile(path: String)(using Logger[IO]): IO[ExitCode] =
     IO

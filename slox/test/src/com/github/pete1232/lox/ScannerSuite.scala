@@ -1,7 +1,6 @@
 package com.github.pete1232.lox
 
 import com.github.pete1232.lox.errors.ScannerError
-import com.github.pete1232.lox.io.LoggerBootstrap
 import com.github.pete1232.lox.models.{Token, TokenContext, TokenWithContext}
 import com.github.pete1232.lox.utils.Showable.given
 

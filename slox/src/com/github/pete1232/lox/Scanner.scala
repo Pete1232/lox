@@ -1,7 +1,7 @@
 package com.github.pete1232.lox
 
 import com.github.pete1232.lox.errors.ScannerError
-import com.github.pete1232.lox.io.LoggerBootstrap
+import com.github.pete1232.lox.io.Logging
 import com.github.pete1232.lox.models.{Token, TokenContext, TokenWithContext}
 import com.github.pete1232.lox.utils.*
 
@@ -11,12 +11,9 @@ import org.typelevel.log4cats.Logger
 trait Scanner:
   def scan(source: String): IO[List[Either[ScannerError, TokenWithContext]]]
 
-object DefaultScanner extends Scanner:
+object DefaultScanner extends Scanner with Logging:
   def scan(source: String): IO[List[Either[ScannerError, TokenWithContext]]] =
-    for
-      logger <- LoggerBootstrap.create()
-      result <- scanLoop(source, 0, Nil)(using logger)
-    yield result
+    withLogger(scanLoop(source, 0, Nil))
 
   private def scanLoop(
       remainingInput: String,
