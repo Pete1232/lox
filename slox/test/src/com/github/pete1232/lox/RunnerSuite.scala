@@ -20,7 +20,7 @@ object RunnerSuite extends SimpleIOSuite:
   object MockParser extends Parser:
     def parse(
         tokens: List[TokenWithContext]
-    ): List[Either[errors.ParserError, Expression]] = Nil
+    ): IO[List[Either[errors.ParserError, Expression]]] = IO.pure(Nil)
 
   val runner =
     Runner(MockScanner, MockParser)

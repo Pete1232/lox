@@ -1,6 +1,7 @@
 package com.github.pete1232.lox
 
 import com.github.pete1232.lox.errors.ParserError
+import com.github.pete1232.lox.io.Logging
 import com.github.pete1232.lox.models.{
   ExpressionContext,
   Token,
@@ -9,81 +10,89 @@ import com.github.pete1232.lox.models.{
 import com.github.pete1232.lox.models.Expression
 
 import cats.data.NonEmptyList
+import cats.effect.IO
+import org.typelevel.log4cats.Logger
 
 trait Parser:
   def parse(
       tokens: List[TokenWithContext]
-  ): List[Either[ParserError, Expression]]
+  ): IO[List[Either[ParserError, Expression]]]
 
-object DefaultParser extends Parser:
+object DefaultParser extends Parser with Logging:
+
+  type ParserResponse =
+    IO[(Either[ParserError, Expression], List[TokenWithContext])]
 
   import ParserError.*
 
   def parse(
       tokens: List[TokenWithContext]
-  ): List[Either[ParserError, Expression]] =
-    parseLoop(tokens)
+  ): IO[List[Either[ParserError, Expression]]] =
+    withLogger(parseLoop(tokens))
 
-  @scala.annotation.tailrec
   private def parseLoop(
       tokensIn: List[TokenWithContext],
-      result: List[Either[ParserError, Expression]] = Nil,
-  ): List[Either[ParserError, Expression]] =
+      result: IO[List[Either[ParserError, Expression]]] = IO.pure(Nil),
+  )(using Logger[IO]): IO[List[Either[ParserError, Expression]]] =
     if tokensIn.isEmpty then result
     else
-      val (expressionResult, remainingTokens) = expression(tokensIn)
-      val tokensToParse                       =
-        expressionResult match
-          case Right(_) => remainingTokens
-          case Left(binaryOperatorError: BinaryExpressionNotOpened) =>
-            remainingTokens
-          case _ => synchronize(remainingTokens)
-      parseLoop(tokensToParse, result :+ expressionResult)
+      expression(tokensIn).flatMap { parseResult =>
+        val (expressionResult, remainingTokens) = parseResult
+        val tokensToParse                       =
+          expressionResult match
+            case Right(_) => remainingTokens
+            case Left(binaryOperatorError: BinaryExpressionNotOpened) =>
+              remainingTokens
+            case _ => synchronize(remainingTokens)
+        parseLoop(tokensToParse, result.map(_ :+ expressionResult))
+      }
 
   private def binaryExpression(
       tokens: List[TokenWithContext],
       matchingTokens: List[Expression.BinaryOperator],
-      production: List[TokenWithContext] => (
-          Either[ParserError, Expression],
-          List[TokenWithContext],
-      ),
-  ): (Either[ParserError, Expression], List[TokenWithContext]) =
+      production: List[TokenWithContext] => ParserResponse,
+  )(using Logger[IO]): ParserResponse =
 
-    @scala.annotation.tailrec
     def leftAssociativeLoop(
         leftExpr: Expression,
         tokens: List[TokenWithContext],
-    ): (Either[ParserError, Expression], List[TokenWithContext]) =
+    ): ParserResponse =
       tokens.headOption match
         case Some(tokenWithContext) =>
           matchingTokens.find(_ == tokenWithContext.token) match
-            case None                => (Right(leftExpr), tokens)
+            case None                => IO.pure((Right(leftExpr), tokens))
             case Some(operatorToken) =>
-              production(tokens.tail) match
-                case (Left(error), remainingTokens)      =>
-                  (Left(error), remainingTokens)
-                case (Right(rightExpr), remainingTokens) =>
-                  leftAssociativeLoop(
-                    Expression.Binary(leftExpr, operatorToken, rightExpr)(
-                      using ExpressionContext(tokenWithContext.context)
-                    ),
-                    remainingTokens,
-                  )
-        case _                      => (Right(leftExpr), tokens)
+              production(tokens.tail).flatMap {
+                _ match
+                  case (Left(error), remainingTokens)      =>
+                    IO.pure((Left(error), remainingTokens))
+                  case (Right(rightExpr), remainingTokens) =>
+                    leftAssociativeLoop(
+                      Expression.Binary(leftExpr, operatorToken, rightExpr)(
+                        using ExpressionContext(tokenWithContext.context)
+                      ),
+                      remainingTokens,
+                    )
+              }
+        case _                      => IO.pure((Right(leftExpr), tokens))
 
-    production(tokens) match
-      case (Right(leftExpr), remainingTokens) =>
-        leftAssociativeLoop(leftExpr, remainingTokens)
-      case (Left(err), remainingTokens)       => (Left(err), remainingTokens)
+    production(tokens).flatMap {
+      _ match
+        case (Right(leftExpr), remainingTokens) =>
+          leftAssociativeLoop(leftExpr, remainingTokens)
+        case (Left(err), remainingTokens)       =>
+          IO.pure((Left(err), remainingTokens))
+    }
 
   private def expression(
       tokens: List[TokenWithContext]
-  ): (Either[ParserError, Expression], List[TokenWithContext]) =
-    comma(tokens)
+  )(using Logger[IO]): ParserResponse =
+    Logger[IO].debug("Parsing an expression") *>
+      comma(tokens)
 
   private def comma(
       tokens: List[TokenWithContext]
-  ): (Either[ParserError, Expression], List[TokenWithContext]) =
+  )(using Logger[IO]): ParserResponse =
     binaryExpression(
       tokens,
       List(Token.SingleCharacter.Comma),
@@ -92,45 +101,60 @@ object DefaultParser extends Parser:
 
   private def conditional(
       tokens: List[TokenWithContext]
-  ): (Either[ParserError, Expression], List[TokenWithContext]) =
-    equality(tokens) match
-      case (Left(err), remainingTokens) => (Left(err), remainingTokens)
-      case (Right(leftExpr), remainingTokensAfterLeft) =>
-        remainingTokensAfterLeft.headOption match
-          case Some(questionToken)
-              if questionToken.token == Token.SingleCharacter.Question =>
-            expression(remainingTokensAfterLeft.tail) match
-              case (Left(err), remainingTokens) => (Left(err), remainingTokens)
-              case (Right(middleExpr), remainingTokensAfterMiddle) =>
-                remainingTokensAfterMiddle.headOption match
-                  case Some(colonToken)
-                      if colonToken.token == Token.SingleCharacter.Colon =>
-                    conditional(remainingTokensAfterMiddle.tail) match
-                      case (Left(err), remainingTokens)                  =>
-                        (Left(err), remainingTokens)
-                      case (Right(rightExpr), remainingTokensAfterRight) =>
-                        (
-                          Right(
-                            Expression.Ternary(leftExpr, middleExpr, rightExpr)(
-                              using ExpressionContext(questionToken.context)
-                            )
-                          ),
-                          remainingTokensAfterRight,
+  )(using Logger[IO]): ParserResponse =
+    equality(tokens).flatMap {
+      _ match
+        case (Left(err), remainingTokens)                =>
+          IO.pure((Left(err), remainingTokens))
+        case (Right(leftExpr), remainingTokensAfterLeft) =>
+          remainingTokensAfterLeft.headOption match
+            case Some(questionToken)
+                if questionToken.token == Token.SingleCharacter.Question =>
+              expression(remainingTokensAfterLeft.tail).flatMap {
+                _ match
+                  case (Left(err), remainingTokens)                    =>
+                    IO.pure((Left(err), remainingTokens))
+                  case (Right(middleExpr), remainingTokensAfterMiddle) =>
+                    remainingTokensAfterMiddle.headOption match
+                      case Some(colonToken)
+                          if colonToken.token == Token.SingleCharacter.Colon =>
+                        conditional(remainingTokensAfterMiddle.tail).map {
+                          _ match
+                            case (Left(err), remainingTokens) =>
+                              (Left(err), remainingTokens)
+                            case (
+                                  Right(rightExpr),
+                                  remainingTokensAfterRight,
+                                ) =>
+                              (
+                                Right(
+                                  Expression
+                                    .Ternary(leftExpr, middleExpr, rightExpr)(
+                                      using
+                                      ExpressionContext(questionToken.context)
+                                    )
+                                ),
+                                remainingTokensAfterRight,
+                              )
+                        }
+                      case _ =>
+                        IO.pure(
+                          (
+                            Left(
+                              IncompleteConditionalError(
+                                questionToken.context.lineCount
+                              )
+                            ),
+                            remainingTokensAfterMiddle,
+                          )
                         )
-                  case _ =>
-                    (
-                      Left(
-                        IncompleteConditionalError(
-                          questionToken.context.lineCount
-                        )
-                      ),
-                      remainingTokensAfterMiddle,
-                    )
-          case _ => (Right(leftExpr), remainingTokensAfterLeft)
+              }
+            case _ => IO.pure((Right(leftExpr), remainingTokensAfterLeft))
+    }
 
   private def equality(
       tokens: List[TokenWithContext]
-  ): (Either[ParserError, Expression], List[TokenWithContext]) =
+  )(using Logger[IO]): ParserResponse =
     binaryExpression(
       tokens,
       List(
@@ -142,7 +166,7 @@ object DefaultParser extends Parser:
 
   private def comparison(
       tokens: List[TokenWithContext]
-  ): (Either[ParserError, Expression], List[TokenWithContext]) =
+  )(using Logger[IO]): ParserResponse =
     binaryExpression(
       tokens,
       List(
@@ -156,7 +180,7 @@ object DefaultParser extends Parser:
 
   private def term(
       tokens: List[TokenWithContext]
-  ): (Either[ParserError, Expression], List[TokenWithContext]) =
+  )(using Logger[IO]): ParserResponse =
     binaryExpression(
       tokens,
       List(Token.SingleCharacter.Minus, Token.SingleCharacter.Plus),
@@ -165,7 +189,7 @@ object DefaultParser extends Parser:
 
   private def factor(
       tokens: List[TokenWithContext]
-  ): (Either[ParserError, Expression], List[TokenWithContext]) =
+  )(using Logger[IO]): ParserResponse =
     binaryExpression(
       tokens,
       List(Token.SingleCharacter.Star, Token.SingleCharacter.Slash),
@@ -174,61 +198,84 @@ object DefaultParser extends Parser:
 
   private def unary(
       tokens: List[TokenWithContext]
-  ): (Either[ParserError, Expression], List[TokenWithContext]) =
+  )(using Logger[IO]): ParserResponse =
     tokens.headOption match
       case Some(tokenWithContext) =>
         tokenWithContext.token match
           case t @ (Token.SingleCharacter.Bang | Token.SingleCharacter.Minus) =>
-            unary(tokens.tail) match
-              case (Left(error), remainingTokens)       =>
-                (Left(error), remainingTokens)
-              case (Right(expression), remainingTokens) =>
-                (
-                  Right(
-                    Expression.Unary(t, expression)(
-                      using ExpressionContext(tokenWithContext.context)
-                    )
-                  ),
-                  remainingTokens,
-                )
+            unary(tokens.tail).map {
+              _ match
+                case (Left(error), remainingTokens)       =>
+                  (Left(error), remainingTokens)
+                case (Right(expression), remainingTokens) =>
+                  (
+                    Right(
+                      Expression.Unary(t, expression)(
+                        using ExpressionContext(tokenWithContext.context)
+                      )
+                    ),
+                    remainingTokens,
+                  )
+            }
           case _                                                              =>
             primary(NonEmptyList(tokenWithContext, tokens.tail))
       case None                   =>
-        (Left(IncompleteExpression("unary")), tokens)
+        IO.pure((Left(IncompleteExpression("unary")), tokens))
 
   private def primary(
       tokens: NonEmptyList[TokenWithContext]
-  ): (Either[ParserError, Expression], List[TokenWithContext]) =
+  )(using Logger[IO]): ParserResponse =
     val expressionContext = ExpressionContext(tokens.head.context)
     tokens.head.token match
       case Token.Keyword.False                                          =>
-        (Right(Expression.Literal(false)(using expressionContext)), tokens.tail)
+        IO.pure(
+          (
+            Right(Expression.Literal(false)(using expressionContext)),
+            tokens.tail,
+          )
+        )
       case Token.Keyword.True                                           =>
-        (Right(Expression.Literal(true)(using expressionContext)), tokens.tail)
+        IO.pure(
+          (
+            Right(Expression.Literal(true)(using expressionContext)),
+            tokens.tail,
+          )
+        )
       case Token.Keyword.Nil                                            =>
-        (Right(Expression.Literal(null)(using expressionContext)), tokens.tail)
+        IO.pure(
+          (
+            Right(Expression.Literal(null)(using expressionContext)),
+            tokens.tail,
+          )
+        )
       case Token.LiteralNumber(_, n)                                    =>
-        (Right(Expression.Literal(n)(using expressionContext)), tokens.tail)
+        IO.pure(
+          (Right(Expression.Literal(n)(using expressionContext)), tokens.tail)
+        )
       case Token.LiteralString(_, s)                                    =>
-        (Right(Expression.Literal(s)(using expressionContext)), tokens.tail)
+        IO.pure(
+          (Right(Expression.Literal(s)(using expressionContext)), tokens.tail)
+        )
       case Token.SingleCharacter.LeftParen                              =>
-        val (expressionResult, remainingTokens) = expression(tokens.tail)
-        expressionResult match
-          case Left(error) => (expressionResult, remainingTokens)
-          case Right(expr) =>
-            remainingTokens.headOption.map(_.token) match
-              case Some(Token.SingleCharacter.RightParen) =>
-                (
-                  Right(Expression.Group(expr)(using expressionContext)),
-                  remainingTokens.tail,
-                )
-              case _                                      =>
-                (
-                  Left(
-                    UnclosedGroupError(tokens.head.context.lineCount)
-                  ),
-                  remainingTokens,
-                )
+        expression(tokens.tail).map { result =>
+          val (expressionResult, remainingTokens) = result
+          expressionResult match
+            case Left(error) => (expressionResult, remainingTokens)
+            case Right(expr) =>
+              remainingTokens.headOption.map(_.token) match
+                case Some(Token.SingleCharacter.RightParen) =>
+                  (
+                    Right(Expression.Group(expr)(using expressionContext)),
+                    remainingTokens.tail,
+                  )
+                case _                                      =>
+                  (
+                    Left(
+                      UnclosedGroupError(tokens.head.context.lineCount)
+                    ),
+                    remainingTokens,
+                  )
+        }
       case Token.SingleCharacter.Slash | Token.SingleCharacter.Star     =>
         binaryOperatorError(tokens.head.context.lineCount, tokens.tail, unary)
       case Token.SingleCharacter.Plus                                   =>
@@ -243,15 +290,17 @@ object DefaultParser extends Parser:
           comparison,
         )
       case _                                                            =>
-        (
-          Left(
-            UnmatchedTokenError(
-              "primary",
-              tokens.head.context.lineCount,
-              tokens.head.token,
-            )
-          ),
-          tokens.tail,
+        IO.pure(
+          (
+            Left(
+              UnmatchedTokenError(
+                "primary",
+                tokens.head.context.lineCount,
+                tokens.head.token,
+              )
+            ),
+            tokens.tail,
+          )
         )
     end match
   end primary
@@ -259,18 +308,17 @@ object DefaultParser extends Parser:
   private def binaryOperatorError(
       errorLine: Int,
       tokens: List[TokenWithContext],
-      production: List[TokenWithContext] => (
-          Either[ParserError, Expression],
-          List[TokenWithContext],
-      ),
-  ) =
-    val remainingTokens = production(tokens)._2
-    (
-      Left(
-        BinaryExpressionNotOpened(errorLine)
-      ),
-      remainingTokens,
-    )
+      production: List[TokenWithContext] => ParserResponse,
+  ): ParserResponse =
+    production(tokens).map { result =>
+      val remainingTokens = result._2
+      (
+        Left(
+          BinaryExpressionNotOpened(errorLine)
+        ),
+        remainingTokens,
+      )
+    }
 
   private def synchronize(
       tokens: List[TokenWithContext]

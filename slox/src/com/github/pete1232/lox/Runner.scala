@@ -56,15 +56,20 @@ final case class Runner(
           .sequence_
           .as(ExitCode(65))
       else
-        val (parserErrors, parsedExpressions) =
-          parser.parse(scannedTokens).partitionMap(identity)
-        if parserErrors.nonEmpty then
-          parserErrors
-            .map(console.println)
-            .sequence_
-            .as(ExitCode.Error)
-        else
-          parsedExpressions.map(console.println).sequence_.as(ExitCode.Success)
+        parser.parse(scannedTokens).flatMap { scanResult =>
+          val (parserErrors, parsedExpressions) =
+            scanResult.partitionMap(identity)
+          if parserErrors.nonEmpty then
+            parserErrors
+              .map(console.println)
+              .sequence_
+              .as(ExitCode.Error)
+          else
+            parsedExpressions
+              .map(console.println)
+              .sequence_
+              .as(ExitCode.Success)
+        }
     }
 
   object ErrorHandler:
