@@ -2,10 +2,8 @@ package com.github.pete1232.lox.io
 
 import scala.language.unsafeNulls
 
-import cats.effect.IO
 import cats.effect.kernel.Sync
 import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 /** Make log4cats easier to work with, and retrict the use of unsafe nulls. */
