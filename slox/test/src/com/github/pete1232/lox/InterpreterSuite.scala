@@ -22,33 +22,39 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
 
   test("evaluating a literal should return its value") {
     forall(loxValueGen) { v =>
-      expect(Expression.Literal(v).interpret == Right(v))
+      for result <- Expression.Literal(v).interpret
+      yield expect(result == Right(v))
     }
   }
 
   test("evaluating a group should evaluate an inner literal expression") {
     forall(loxValueGen) { v =>
-      val expr = Expression.Group(Expression.Literal(v))
-      expect(expr.interpret == expr.expression.interpret)
+      for
+        groupResult   <- Expression.Group(Expression.Literal(v)).interpret
+        literalResult <- Expression.Literal(v).interpret
+      yield expect(groupResult == literalResult)
     }
   }
   // todo group with other nested expressions
 
   test("evaluate a unary `-` expression with a numeric right operand") {
     forall(Gen.double) { v =>
-      val expr =
-        Expression.Unary(Token.SingleCharacter.Minus, Expression.Literal(v))
-      expect(expr.interpret == Right(-v))
+      for result <- Expression
+          .Unary(Token.SingleCharacter.Minus, Expression.Literal(v))
+          .interpret
+      yield expect(result == Right(-v))
     }
   }
 
-  pureTest("error when the right operand of a `-` unary is not a number") {
-    val expr = Expression.Unary(
-      Token.SingleCharacter.Minus,
-      Expression.Literal("teststring"),
-    )
-    expect(
-      expr.interpret == Left(
+  test("error when the right operand of a `-` unary is not a number") {
+    for result <- Expression
+        .Unary(
+          Token.SingleCharacter.Minus,
+          Expression.Literal("teststring"),
+        )
+        .interpret
+    yield expect(
+      result == Left(
         InterpreterError.UnaryCastError(
           "teststring",
           Token.SingleCharacter.Minus,
