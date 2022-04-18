@@ -4,6 +4,8 @@ import com.github.pete1232.lox.errors.InterpreterError
 import com.github.pete1232.lox.io.Logging
 import com.github.pete1232.lox.models.{Expression, Token}
 
+import cats.Functor
+import cats.data.EitherT
 import cats.effect.IO
 import cats.effect.kernel.Sync
 import org.typelevel.log4cats.Logger
@@ -11,7 +13,7 @@ import org.typelevel.log4cats.Logger
 sealed trait Interpreter[F[_], T]:
   extension (t: T) def interpret: F[Either[InterpreterError, LoxValue]]
 
-final class ExpressionInterpreter[F[_]: Sync]
+final class ExpressionInterpreter[F[_]: Sync: Functor]
     extends Interpreter[F, Expression]
     with Logging:
   extension (expr: Expression)
@@ -24,7 +26,9 @@ final class ExpressionInterpreter[F[_]: Sync]
 
     def interpret: F[Either[InterpreterError, LoxValue]] =
       withLogger {
-        import cats.implicits.*
+        // import cats.implicits.*
+        import cats.syntax.all.toFunctorOps
+        import cats.syntax.all.catsSyntaxApply
         expr match
           case l: Expression.Literal =>
             Logger[F]
@@ -42,18 +46,40 @@ final class ExpressionInterpreter[F[_]: Sync]
                     result match
                       case dbl: Double => Right(-dbl)
                       case v           =>
-                        Left(
-                          InterpreterError.UnaryCastError(
-                            v,
-                            Token.SingleCharacter.Minus,
-                          )
+                        throw InterpreterError.UnaryCastError(
+                          v,
+                          Token.SingleCharacter.Minus,
                         )
                   })
                 case Token.SingleCharacter.Bang  =>
-                  u.right.interpret.map(_.map { v => !booleanValue(v) })
+                  u.right.interpret.map(_.map(v => !booleanValue(v)))
             }
-          case _                     => ??? // todo exhaustive match
+          case b: Expression.Binary  =>
+            {
+              for
+                left   <- EitherT(b.left.interpret)
+                right  <- EitherT(b.right.interpret)
+                result <- {
+                  b.operator match
+                    case Token.SingleCharacter.Minus =>
+                      (left, right) match
+                        case (d1: Double, d2: Double) =>
+                          EitherT.fromEither(Right(d1 - d2))
+                        case (v, _)                   =>
+                          throw InterpreterError.BinaryCastError(
+                            left,
+                            right,
+                            Token.SingleCharacter.Minus,
+                          )
+                    case _                           => ???
+                }
+              yield result
+            }.value
+
+          case t: Expression.Ternary => ???
       }
+  end extension
+end ExpressionInterpreter
 
 object Interpreter:
   given Interpreter[IO, Expression] = new ExpressionInterpreter[IO]

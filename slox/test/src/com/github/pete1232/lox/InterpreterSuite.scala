@@ -5,7 +5,10 @@ import com.github.pete1232.lox.errors.InterpreterError
 import com.github.pete1232.lox.models.{Expression, ExpressionContext, Token}
 import com.github.pete1232.lox.utils.Showable.given
 
+import cats.effect.IO
+import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
+import weaver.Expectations
 import weaver.SimpleIOSuite
 import weaver.scalacheck.Checkers
 
@@ -46,21 +49,21 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
     }
   }
 
-  test("error when the right operand of a `-` unary is not a number") {
-    for result <- Expression
-        .Unary(
-          Token.SingleCharacter.Minus,
-          Expression.Literal("teststring"),
-        )
-        .interpret
-    yield expect(
-      result == Left(
-        InterpreterError.UnaryCastError(
+  test("throw a runtime error evaluating a unary expression on a string") {
+    val result = Expression
+      .Unary(
+        Token.SingleCharacter.Minus,
+        Expression.Literal("teststring"),
+      )
+      .interpret
+    expectError(result) { case err: InterpreterError.UnaryCastError =>
+      expect(
+        err == InterpreterError.UnaryCastError(
           "teststring",
           Token.SingleCharacter.Minus,
         )
       )
-    )
+    }
   }
 
   test("evaluate a unary `!` expression with a boolean right operand") {
@@ -91,6 +94,72 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
       yield expect(result == Right(false))
     }
   }
-  // todo unary with other expressions
+  // todo unary with non-literal expressions
+
+  test("evaluate a binary `-` expression on double operands") {
+    forall { (d1: Double, d2: Double) =>
+      for result <- Expression
+          .Binary(
+            Expression.Literal(d1),
+            Token.SingleCharacter.Minus,
+            Expression.Literal(d2),
+          )
+          .interpret
+      yield expect(result == Right(d1 - d2))
+    }
+  }
+
+  // test("evaluate a binary `/` expression on double operands") {
+  //   forall { (d1: Double, d2: Double) =>
+  //     for result <- Expression
+  //         .Binary(
+  //           Expression.Literal(d1),
+  //           Token.SingleCharacter.Slash,
+  //           Expression.Literal(d2),
+  //         )
+  //         .interpret
+  //     yield expect(result == Right(d1 / d2))
+  //   }
+  // }
+
+  // test("evaluate a binary `*` expression on double operands") {
+  //   forall { (d1: Double, d2: Double) =>
+  //     for result <- Expression
+  //         .Binary(
+  //           Expression.Literal(d1),
+  //           Token.SingleCharacter.Star,
+  //           Expression.Literal(d2),
+  //         )
+  //         .interpret
+  //     yield expect(result == Right(d1 * d2))
+  //   }
+  // }
+
+  test("throw a runtime error evaluating a binary expression on a string") {
+    val result = Expression
+      .Binary(
+        Expression.Literal("hello"),
+        Token.SingleCharacter.Minus,
+        Expression.Literal("world"),
+      )
+      .interpret
+    expectError(result) { case error: InterpreterError.BinaryCastError =>
+      expect(
+        error == InterpreterError.BinaryCastError(
+          "hello",
+          "world",
+          Token.SingleCharacter.Minus,
+        )
+      )
+    }
+  }
+  // todo binary with non-literal expressions
+
+  private def expectError[T](
+      result: IO[T]
+  )(expectation: Throwable => Expectations) =
+    result
+      .map(_ => failure("expected a runtime error"))
+      .handleError(expectation)
 
 end InterpreterSuite
