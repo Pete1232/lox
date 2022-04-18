@@ -135,7 +135,171 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
     }
   }
 
-  test("throw a runtime error evaluating a binary expression on a string") {
+  test("evaluate a binary `+` expression on double operands") {
+    forall { (d1: Double, d2: Double) =>
+      for result <- Expression
+          .Binary(
+            Expression.Literal(d1),
+            Token.SingleCharacter.Plus,
+            Expression.Literal(d2),
+          )
+          .interpret
+      yield expect(result == Right(d1 + d2))
+    }
+  }
+
+  test("evaluate a binary `+` expression on string operands") {
+    forall { (s1: String, s2: String) =>
+      for result <- Expression
+          .Binary(
+            Expression.Literal(s1),
+            Token.SingleCharacter.Plus,
+            Expression.Literal(s2),
+          )
+          .interpret
+      yield expect(result == Right(s1 + s2))
+    }
+  }
+
+  test("evaluate a binary `>` expression on double operands") {
+    forall { (d1: Double, d2: Double) =>
+      for result <- Expression
+          .Binary(
+            Expression.Literal(d1),
+            Token.SingleCharacter.Greater,
+            Expression.Literal(d2),
+          )
+          .interpret
+      yield expect(result == Right(d1 > d2))
+    }
+  }
+
+  test("evaluate a binary `>=` expression on double operands") {
+    forall { (d1: Double, d2: Double) =>
+      for result <- Expression
+          .Binary(
+            Expression.Literal(d1),
+            Token.TwoCharacter.GreaterEqual,
+            Expression.Literal(d2),
+          )
+          .interpret
+      yield expect(result == Right(d1 >= d2))
+    }
+  }
+
+  test("evaluate a binary `<` expression on double operands") {
+    forall { (d1: Double, d2: Double) =>
+      for result <- Expression
+          .Binary(
+            Expression.Literal(d1),
+            Token.SingleCharacter.Less,
+            Expression.Literal(d2),
+          )
+          .interpret
+      yield expect(result == Right(d1 < d2))
+    }
+  }
+
+  test("evaluate a binary `<=` expression on double operands") {
+    forall { (d1: Double, d2: Double) =>
+      for result <- Expression
+          .Binary(
+            Expression.Literal(d1),
+            Token.TwoCharacter.LessEqual,
+            Expression.Literal(d2),
+          )
+          .interpret
+      yield expect(result == Right(d1 <= d2))
+    }
+  }
+
+  test("evaluate a binary `==` expression on equal operands") {
+    forall(loxValueGen) { v =>
+      for result <- Expression
+          .Binary(
+            Expression.Literal(v),
+            Token.TwoCharacter.EqualEqual,
+            Expression.Literal(v),
+          )
+          .interpret
+      yield expect(result == Right(true))
+    }
+  }
+
+  test("evaluate a binary `==` expression on different operands") {
+    for result <- Expression
+        .Binary(
+          Expression.Literal("test"),
+          Token.TwoCharacter.EqualEqual,
+          Expression.Literal(5),
+        )
+        .interpret
+    yield expect(result == Right(false))
+  }
+
+  test("evaluate a binary `==` expression on null operands") {
+    for
+      r1 <- Expression
+        .Binary(
+          Expression.Literal(null),
+          Token.TwoCharacter.EqualEqual,
+          Expression.Literal(null),
+        )
+        .interpret
+      r2 <- Expression
+        .Binary(
+          Expression.Literal(null),
+          Token.TwoCharacter.EqualEqual,
+          Expression.Literal("test"),
+        )
+        .interpret
+    yield expect.all(r1 == Right(true), r2 == Right(false))
+  }
+
+  test("evaluate a binary `!=` expression on equal operands") {
+    forall(loxValueGen) { v =>
+      for result <- Expression
+          .Binary(
+            Expression.Literal(v),
+            Token.TwoCharacter.BangEqual,
+            Expression.Literal(v),
+          )
+          .interpret
+      yield expect(result == Right(false))
+    }
+  }
+
+  test("evaluate a binary `!=` expression on different operands") {
+    for result <- Expression
+        .Binary(
+          Expression.Literal("test"),
+          Token.TwoCharacter.BangEqual,
+          Expression.Literal(5),
+        )
+        .interpret
+    yield expect(result == Right(true))
+  }
+
+  test("evaluate a binary `!=` expression on null operands") {
+    for
+      r1 <- Expression
+        .Binary(
+          Expression.Literal(null),
+          Token.TwoCharacter.BangEqual,
+          Expression.Literal(null),
+        )
+        .interpret
+      r2 <- Expression
+        .Binary(
+          Expression.Literal(null),
+          Token.TwoCharacter.BangEqual,
+          Expression.Literal("test"),
+        )
+        .interpret
+    yield expect.all(r1 == Right(false), r2 == Right(true))
+  }
+
+  test("throw a runtime error evaluating a - binary expression on a string") {
     val result = Expression
       .Binary(
         Expression.Literal("hello"),
@@ -154,6 +318,7 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
     }
   }
   // todo binary with non-literal expressions
+  // todo more comprehensive binary errors
 
   private def expectError[T](
       result: IO[T]

@@ -54,18 +54,40 @@ final class ExpressionInterpreter[F[_]: Sync: Functor]
                 right  <- EitherT(b.right.interpret)
                 result <- {
                   b.operator match
-                    case t @ Token.SingleCharacter.Minus =>
+                    case Token.SingleCharacter.Comma         =>
+                      ??? // todo comma, eval and discard left
+                    case Token.TwoCharacter.EqualEqual       =>
+                      EitherT.fromEither(Right(isEqual(left, right)))
+                    case Token.TwoCharacter.BangEqual        =>
+                      EitherT.fromEither(Right(!isEqual(left, right)))
+                    case t @ Token.SingleCharacter.Greater   =>
+                      comparisonExpression(left, right, t)(_ > _)
+                    case t @ Token.TwoCharacter.GreaterEqual =>
+                      comparisonExpression(left, right, t)(_ >= _)
+                    case t @ Token.SingleCharacter.Less      =>
+                      comparisonExpression(left, right, t)(_ < _)
+                    case t @ Token.TwoCharacter.LessEqual    =>
+                      comparisonExpression(left, right, t)(_ <= _)
+                    case t @ Token.SingleCharacter.Minus     =>
                       arithmeticExpression(left, right, t)(_ - _)
-                    case t @ Token.SingleCharacter.Slash =>
+                    case t @ Token.SingleCharacter.Slash     =>
                       arithmeticExpression(left, right, t)(_ / _)
-                    case t @ Token.SingleCharacter.Star  =>
+                    case t @ Token.SingleCharacter.Star      =>
                       arithmeticExpression(left, right, t)(_ * _)
-                    case _                               => ??? // todo
+                    case t @ Token.SingleCharacter.Plus      =>
+                      (left, right) match
+                        case (d1: Double, d2: Double) =>
+                          EitherT.fromEither(Right(d1 + d2))
+                        case (s1: String, s2: String) =>
+                          EitherT.fromEither(Right(s1 + s2))
+                        case _                        =>
+                          throw InterpreterError.BinaryCastError(left, right, t)
                 }
               yield result
             }.value
 
-          case t: Expression.Ternary => ???
+          case t: Expression.Ternary => ??? // todo ternary implementation
+        end match
       }
   end extension
 
@@ -75,15 +97,35 @@ final class ExpressionInterpreter[F[_]: Sync: Functor]
       case b: Boolean => b
       case _          => true
 
+  private def isEqual(left: LoxValue, right: LoxValue) =
+    if left == null && right == null then true
+    else if left == null then false
+    else left.equals(right)
+
   private def arithmeticExpression(
       left: LoxValue,
       right: LoxValue,
       token: Token,
-  )(eval: (Double, Double) => Double): EitherT[F, InterpreterError, Double] =
+  )(eval: (Double, Double) => Double): EitherT[F, InterpreterError, LoxValue] =
     (left, right) match
       case (d1: Double, d2: Double) =>
         EitherT.fromEither(Right(eval(d1, d2)))
-      case (v, _)                   =>
+      case _                        =>
+        throw InterpreterError.BinaryCastError(
+          left,
+          right,
+          token,
+        )
+
+  private def comparisonExpression(
+      left: LoxValue,
+      right: LoxValue,
+      token: Token,
+  )(eval: (Double, Double) => Boolean): EitherT[F, InterpreterError, LoxValue] =
+    (left, right) match
+      case (d1: Double, d2: Double) =>
+        EitherT.fromEither(Right(eval(d1, d2)))
+      case _                        =>
         throw InterpreterError.BinaryCastError(
           left,
           right,
