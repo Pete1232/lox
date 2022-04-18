@@ -72,21 +72,25 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
     }
   }
 
-  test("error when the right operand of a `!` unary is not a boolean") {
+  test(
+    "evaluate a unary `!` expression with a null right operand, treating null as false"
+  ) {
     for result <- Expression
-        .Unary(
-          Token.SingleCharacter.Bang,
-          Expression.Literal("teststring"),
-        )
+        .Unary(Token.SingleCharacter.Bang, Expression.Literal(null))
         .interpret
-    yield expect(
-      result == Left(
-        InterpreterError.UnaryCastError(
-          "teststring",
-          Token.SingleCharacter.Bang,
-        )
-      )
-    )
+    yield expect(result == Right(true))
   }
-  // todo unary with other nested expressions
+
+  test(
+    "evaluate a unary `!` expression with a string right operand, treating any string as true"
+  ) {
+    forall(Gen.alphaNumStr) { s =>
+      for result <- Expression
+          .Unary(Token.SingleCharacter.Bang, Expression.Literal(s))
+          .interpret
+      yield expect(result == Right(false))
+    }
+  }
+  // todo unary with other expressions
+
 end InterpreterSuite

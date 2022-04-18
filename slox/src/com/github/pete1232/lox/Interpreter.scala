@@ -15,6 +15,13 @@ final class ExpressionInterpreter[F[_]: Sync]
     extends Interpreter[F, Expression]
     with Logging:
   extension (expr: Expression)
+
+    private def booleanValue(value: LoxValue) =
+      value match
+        case null       => false
+        case b: Boolean => b
+        case _          => true
+
     def interpret: F[Either[InterpreterError, LoxValue]] =
       withLogger {
         import cats.implicits.*
@@ -43,17 +50,7 @@ final class ExpressionInterpreter[F[_]: Sync]
                         )
                   })
                 case Token.SingleCharacter.Bang  =>
-                  u.right.interpret.map(_.flatMap {
-                    _ match
-                      case bool: Boolean => Right(!bool)
-                      case v             =>
-                        Left(
-                          InterpreterError.UnaryCastError(
-                            v,
-                            Token.SingleCharacter.Bang,
-                          )
-                        )
-                  })
+                  u.right.interpret.map(_.map { v => !booleanValue(v) })
             }
           case _                     => ??? // todo exhaustive match
       }
