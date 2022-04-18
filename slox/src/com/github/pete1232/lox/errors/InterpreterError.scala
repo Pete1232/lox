@@ -1,28 +1,30 @@
 package com.github.pete1232.lox.errors
 
 import com.github.pete1232.lox.LoxValue
+import com.github.pete1232.lox.given
 import com.github.pete1232.lox.models.Token
 import com.github.pete1232.lox.utils.Showable
 
-// todo interpreter errors need more context for line numbers
 enum InterpreterError(val message: String, val lineNumber: Int)
     extends RuntimeException:
 
   case UnaryCastError(
       value: LoxValue,
       operatorToken: Token,
+      line: Int,
   ) extends InterpreterError(
-        s"The value $value is not valid after a unary operator ${operatorToken.lexeme}",
-        0,
+        s"The expression ${operatorToken.show} cannot preceed expression ${value.show}.",
+        line,
       )
 
   case BinaryCastError(
       left: LoxValue,
       right: LoxValue,
       operatorToken: Token,
+      line: Int,
   ) extends InterpreterError(
-        "Value must be a number.",
-        0,
+        s"The expression ${operatorToken.show} cannot operate on ${left.show} and ${right.show}.",
+        line,
       )
 
 object InterpreterError:

@@ -61,6 +61,7 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
         err == InterpreterError.UnaryCastError(
           "teststring",
           Token.SingleCharacter.Minus,
+          0,
         )
       )
     }
@@ -313,6 +314,7 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
           "hello",
           "world",
           Token.SingleCharacter.Minus,
+          0,
         )
       )
     }

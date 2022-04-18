@@ -42,6 +42,7 @@ final class ExpressionInterpreter[F[_]: Sync: Functor]
                         throw InterpreterError.UnaryCastError(
                           v,
                           Token.SingleCharacter.Minus,
+                          expr.context.line,
                         )
                   })
                 case Token.SingleCharacter.Bang  =>
@@ -61,19 +62,33 @@ final class ExpressionInterpreter[F[_]: Sync: Functor]
                     case Token.TwoCharacter.BangEqual        =>
                       EitherT.fromEither(Right(!isEqual(left, right)))
                     case t @ Token.SingleCharacter.Greater   =>
-                      comparisonExpression(left, right, t)(_ > _)
+                      comparisonExpression(left, right, t, expr.context.line)(
+                        _ > _
+                      )
                     case t @ Token.TwoCharacter.GreaterEqual =>
-                      comparisonExpression(left, right, t)(_ >= _)
+                      comparisonExpression(left, right, t, expr.context.line)(
+                        _ >= _
+                      )
                     case t @ Token.SingleCharacter.Less      =>
-                      comparisonExpression(left, right, t)(_ < _)
+                      comparisonExpression(left, right, t, expr.context.line)(
+                        _ < _
+                      )
                     case t @ Token.TwoCharacter.LessEqual    =>
-                      comparisonExpression(left, right, t)(_ <= _)
+                      comparisonExpression(left, right, t, expr.context.line)(
+                        _ <= _
+                      )
                     case t @ Token.SingleCharacter.Minus     =>
-                      arithmeticExpression(left, right, t)(_ - _)
+                      arithmeticExpression(left, right, t, expr.context.line)(
+                        _ - _
+                      )
                     case t @ Token.SingleCharacter.Slash     =>
-                      arithmeticExpression(left, right, t)(_ / _)
+                      arithmeticExpression(left, right, t, expr.context.line)(
+                        _ / _
+                      )
                     case t @ Token.SingleCharacter.Star      =>
-                      arithmeticExpression(left, right, t)(_ * _)
+                      arithmeticExpression(left, right, t, expr.context.line)(
+                        _ * _
+                      )
                     case t @ Token.SingleCharacter.Plus      =>
                       (left, right) match
                         case (d1: Double, d2: Double) =>
@@ -81,7 +96,12 @@ final class ExpressionInterpreter[F[_]: Sync: Functor]
                         case (s1: String, s2: String) =>
                           EitherT.fromEither(Right(s1 + s2))
                         case _                        =>
-                          throw InterpreterError.BinaryCastError(left, right, t)
+                          throw InterpreterError.BinaryCastError(
+                            left,
+                            right,
+                            t,
+                            expr.context.line,
+                          )
                 }
               yield result
             }.value
@@ -106,6 +126,7 @@ final class ExpressionInterpreter[F[_]: Sync: Functor]
       left: LoxValue,
       right: LoxValue,
       token: Token,
+      line: Int,
   )(eval: (Double, Double) => Double): EitherT[F, InterpreterError, LoxValue] =
     (left, right) match
       case (d1: Double, d2: Double) =>
@@ -115,12 +136,14 @@ final class ExpressionInterpreter[F[_]: Sync: Functor]
           left,
           right,
           token,
+          line,
         )
 
   private def comparisonExpression(
       left: LoxValue,
       right: LoxValue,
       token: Token,
+      line: Int,
   )(eval: (Double, Double) => Boolean): EitherT[F, InterpreterError, LoxValue] =
     (left, right) match
       case (d1: Double, d2: Double) =>
@@ -130,6 +153,7 @@ final class ExpressionInterpreter[F[_]: Sync: Functor]
           left,
           right,
           token,
+          line,
         )
 
 end ExpressionInterpreter
