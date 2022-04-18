@@ -109,31 +109,31 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
     }
   }
 
-  // test("evaluate a binary `/` expression on double operands") {
-  //   forall { (d1: Double, d2: Double) =>
-  //     for result <- Expression
-  //         .Binary(
-  //           Expression.Literal(d1),
-  //           Token.SingleCharacter.Slash,
-  //           Expression.Literal(d2),
-  //         )
-  //         .interpret
-  //     yield expect(result == Right(d1 / d2))
-  //   }
-  // }
+  test("evaluate a binary `/` expression on double operands") {
+    forall { (d1: Double, d2: Double) =>
+      for result <- Expression
+          .Binary(
+            Expression.Literal(d1),
+            Token.SingleCharacter.Slash,
+            Expression.Literal(d2),
+          )
+          .interpret
+      yield expect(result == Right(d1 / d2))
+    }
+  }
 
-  // test("evaluate a binary `*` expression on double operands") {
-  //   forall { (d1: Double, d2: Double) =>
-  //     for result <- Expression
-  //         .Binary(
-  //           Expression.Literal(d1),
-  //           Token.SingleCharacter.Star,
-  //           Expression.Literal(d2),
-  //         )
-  //         .interpret
-  //     yield expect(result == Right(d1 * d2))
-  //   }
-  // }
+  test("evaluate a binary `*` expression on double operands") {
+    forall { (d1: Double, d2: Double) =>
+      for result <- Expression
+          .Binary(
+            Expression.Literal(d1),
+            Token.SingleCharacter.Star,
+            Expression.Literal(d2),
+          )
+          .interpret
+      yield expect(result == Right(d1 * d2))
+    }
+  }
 
   test("throw a runtime error evaluating a binary expression on a string") {
     val result = Expression

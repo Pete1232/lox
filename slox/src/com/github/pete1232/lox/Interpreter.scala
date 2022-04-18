@@ -17,13 +17,6 @@ final class ExpressionInterpreter[F[_]: Sync: Functor]
     extends Interpreter[F, Expression]
     with Logging:
   extension (expr: Expression)
-
-    private def booleanValue(value: LoxValue) =
-      value match
-        case null       => false
-        case b: Boolean => b
-        case _          => true
-
     def interpret: F[Either[InterpreterError, LoxValue]] =
       withLogger {
         // import cats.implicits.*
@@ -61,17 +54,13 @@ final class ExpressionInterpreter[F[_]: Sync: Functor]
                 right  <- EitherT(b.right.interpret)
                 result <- {
                   b.operator match
-                    case Token.SingleCharacter.Minus =>
-                      (left, right) match
-                        case (d1: Double, d2: Double) =>
-                          EitherT.fromEither(Right(d1 - d2))
-                        case (v, _)                   =>
-                          throw InterpreterError.BinaryCastError(
-                            left,
-                            right,
-                            Token.SingleCharacter.Minus,
-                          )
-                    case _                           => ???
+                    case t @ Token.SingleCharacter.Minus =>
+                      arithmeticExpression(left, right, t)(_ - _)
+                    case t @ Token.SingleCharacter.Slash =>
+                      arithmeticExpression(left, right, t)(_ / _)
+                    case t @ Token.SingleCharacter.Star  =>
+                      arithmeticExpression(left, right, t)(_ * _)
+                    case _                               => ??? // todo
                 }
               yield result
             }.value
@@ -79,6 +68,28 @@ final class ExpressionInterpreter[F[_]: Sync: Functor]
           case t: Expression.Ternary => ???
       }
   end extension
+
+  private def booleanValue(value: LoxValue) =
+    value match
+      case null       => false
+      case b: Boolean => b
+      case _          => true
+
+  private def arithmeticExpression(
+      left: LoxValue,
+      right: LoxValue,
+      token: Token,
+  )(eval: (Double, Double) => Double): EitherT[F, InterpreterError, Double] =
+    (left, right) match
+      case (d1: Double, d2: Double) =>
+        EitherT.fromEither(Right(eval(d1, d2)))
+      case (v, _)                   =>
+        throw InterpreterError.BinaryCastError(
+          left,
+          right,
+          token,
+        )
+
 end ExpressionInterpreter
 
 object Interpreter:
