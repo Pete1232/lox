@@ -42,7 +42,18 @@ final class ExpressionInterpreter[F[_]: Sync]
                           )
                         )
                   })
-                case Token.SingleCharacter.Bang  => ??? // todo
+                case Token.SingleCharacter.Bang  =>
+                  u.right.interpret.map(_.flatMap {
+                    _ match
+                      case bool: Boolean => Right(!bool)
+                      case v             =>
+                        Left(
+                          InterpreterError.UnaryCastError(
+                            v,
+                            Token.SingleCharacter.Bang,
+                          )
+                        )
+                  })
             }
           case _                     => ??? // todo exhaustive match
       }

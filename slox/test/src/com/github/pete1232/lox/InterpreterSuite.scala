@@ -62,6 +62,31 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
       )
     )
   }
-  // todo unary with `!`
+
+  test("evaluate a unary `!` expression with a boolean right operand") {
+    forall(Gen.oneOf(true, false)) { v =>
+      for result <- Expression
+          .Unary(Token.SingleCharacter.Bang, Expression.Literal(v))
+          .interpret
+      yield expect(result == Right(!v))
+    }
+  }
+
+  test("error when the right operand of a `!` unary is not a boolean") {
+    for result <- Expression
+        .Unary(
+          Token.SingleCharacter.Bang,
+          Expression.Literal("teststring"),
+        )
+        .interpret
+    yield expect(
+      result == Left(
+        InterpreterError.UnaryCastError(
+          "teststring",
+          Token.SingleCharacter.Bang,
+        )
+      )
+    )
+  }
   // todo unary with other nested expressions
 end InterpreterSuite
