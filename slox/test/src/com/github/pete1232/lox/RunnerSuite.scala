@@ -4,7 +4,6 @@ import com.github.pete1232.lox.io.SimpleConsole
 import com.github.pete1232.lox.models.{Expression, TokenWithContext}
 
 import java.io.EOFException
-import java.nio.charset.Charset
 
 import cats.effect.IO
 import cats.effect.std.Console
@@ -23,11 +22,17 @@ object RunnerSuite extends SimpleIOSuite:
     ): IO[List[Either[errors.ParserError, Expression]]] = IO.pure(Nil)
 
   val runner =
-    Runner(MockScanner, MockParser)
+    Runner(DefaultScanner, DefaultParser)
 
-  test("error when the file is not found") {
+  // /usr/include/sysexits.h
+  test("error when invoked with more than one argument") {
+    for exitCode <- runner.run(List("too", "many"))
+    yield expect(exitCode.code == 64)
+  }
+
+  test("error when an input file is not found") {
     for exitCode <- runner.run(List("slox/test/resources/Missing.lox"))
-    yield expect(exitCode.code == 1)
+    yield expect(exitCode.code == 66)
   }
 
   test("return success when passed an empty file") {
@@ -40,6 +45,22 @@ object RunnerSuite extends SimpleIOSuite:
     yield expect(exitCode.code == 0)
   }
 
+  test("error for scanner errors") {
+    for exitCode <- runner.run(List("slox/test/resources/ScannerError.lox"))
+    yield expect(exitCode.code == 65)
+  }
+
+  test("error for parser errors") {
+    for exitCode <- runner.run(List("slox/test/resources/ParserError.lox"))
+    yield expect(exitCode.code == 65)
+  }
+
+  // test("error for interpreter errors") {
+  // for exitCode <-
+  // runner.run(List("slox/test/resources/InterpreterError.lox"))
+  //   yield expect(exitCode.code == 70)
+  // }
+
   def runnerWithFakeConsole(in: IO[String]) =
     Runner(MockScanner, MockParser)(using
       SimpleConsole.fakeConsole(IO.unit, in)
@@ -50,3 +71,10 @@ object RunnerSuite extends SimpleIOSuite:
         .run(Nil)
     yield expect(exitCode.code == 0)
   }
+
+  test("deal with any unhandled error") {
+    for exitCode <- runnerWithFakeConsole(IO.raiseError(new Throwable()))
+        .run(Nil)
+    yield expect(exitCode.code == 1)
+  }
+end RunnerSuite

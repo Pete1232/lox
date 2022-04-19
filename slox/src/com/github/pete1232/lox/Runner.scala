@@ -21,21 +21,30 @@ final case class Runner(
     console: SimpleConsole[IO]
 ) extends Logging:
 
-  final def run(args: List[String]): IO[ExitCode] =
+  final def run(args: List[String]): IO[ExitCode]                   =
     withLogger {
-      args match
-        case Nil       => runPrompt
-        case hd :: Nil => runFile(hd)
-        case _ => console.println("Usage: slox [script]").as(ExitCode(64))
+      {
+        args match
+          case Nil       => runPrompt
+          case hd :: Nil => runFile(hd)
+          case _ => console.println("Usage: slox [script]").as(ExitCode(64))
+      }.recoverWith { case t =>
+        Logger[IO]
+          .error(t)(s"Unhandled error ${t.getMessage}")
+          .as(ExitCode.Error)
+      }
     }
-
   private def runFile(path: String)(using Logger[IO]): IO[ExitCode] =
     IO
       .blocking(Files.readString(Path.of(path)))
       .flatMap { s =>
-        if (s != null) then runScan(s) else IO.pure(ExitCode.Error)
+        if (s != null) then runScan(s) else IO.pure(ExitCode(66))
       }
-      .recoverWith(ErrorHandler.file)
+      .recoverWith { case nsfe: NoSuchFileException =>
+        console
+          .println(s"File not found at path ${nsfe.getFile}")
+          .as(ExitCode(66))
+      }
 
   private def runPrompt(using Logger[IO]): IO[ExitCode] =
     (for
@@ -44,7 +53,9 @@ final case class Runner(
       _      <- Logger[IO].debug(s"Parsed line $l")
       _      <- runScan(l)
       result <- runPrompt
-    yield result).recoverWith(ErrorHandler.repl)
+    yield result).recoverWith { case _: EOFException =>
+      console.println(":quit").as(ExitCode.Success)
+    }
 
   private def runScan(source: String): IO[ExitCode] =
     scanner.scan(source).flatMap { scanResult =>
@@ -63,26 +74,13 @@ final case class Runner(
             parserErrors
               .map(console.println)
               .sequence_
-              .as(ExitCode.Error)
+              .as(ExitCode(65))
           else
             parsedExpressions
               .map(console.println)
               .sequence_
               .as(ExitCode.Success)
         }
-    }
-
-  object ErrorHandler:
-
-    val repl: PartialFunction[Throwable, IO[ExitCode]] = {
-      case _: EOFException => console.println(":quit").as(ExitCode.Success)
-    }
-
-    val file: PartialFunction[Throwable, IO[ExitCode]] = {
-      case nsfe: NoSuchFileException =>
-        console
-          .println(s"File not found at path ${nsfe.getFile}")
-          .as(ExitCode.Error)
     }
 
 end Runner
