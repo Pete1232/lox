@@ -55,11 +55,10 @@ object RunnerSuite extends SimpleIOSuite:
     yield expect(exitCode.code == 65)
   }
 
-  // test("error for interpreter errors") {
-  // for exitCode <-
-  // runner.run(List("slox/test/resources/InterpreterError.lox"))
-  //   yield expect(exitCode.code == 70)
-  // }
+  test("error for interpreter errors") {
+    for exitCode <- runner.run(List("slox/test/resources/InterpreterError.lox"))
+    yield expect(exitCode.code == 70)
+  }
 
   def runnerWithFakeConsole(in: IO[String]) =
     Runner(MockScanner, MockParser)(using

@@ -1,5 +1,7 @@
 package com.github.pete1232.lox
 
+import com.github.pete1232.lox.Interpreter.given
+import com.github.pete1232.lox.errors.InterpreterError
 import com.github.pete1232.lox.io.Logging
 import com.github.pete1232.lox.io.SimpleConsole
 
@@ -76,10 +78,15 @@ final case class Runner(
               .sequence_
               .as(ExitCode(65))
           else
+            import cats.syntax.all.toTraverseOps
             parsedExpressions
-              .map(console.println)
-              .sequence_
+              .map(_.interpret)
+              .sequence
+              .flatMap(console.println)
               .as(ExitCode.Success)
+              .recoverWith { case error: InterpreterError =>
+                console.println(error).as(ExitCode(70))
+              }
         }
     }
 

@@ -26,7 +26,7 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
   test("evaluating a literal should return its value") {
     forall(loxValueGen) { v =>
       for result <- Expression.Literal(v).interpret
-      yield expect(result == Right(v))
+      yield expect(result == v)
     }
   }
 
@@ -45,7 +45,7 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
       for result <- Expression
           .Unary(Token.SingleCharacter.Minus, Expression.Literal(v))
           .interpret
-      yield expect(result == Right(-v))
+      yield expect(result == -v)
     }
   }
 
@@ -72,7 +72,7 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
       for result <- Expression
           .Unary(Token.SingleCharacter.Bang, Expression.Literal(v))
           .interpret
-      yield expect(result == Right(!v))
+      yield expect(result == !v)
     }
   }
 
@@ -82,7 +82,7 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
     for result <- Expression
         .Unary(Token.SingleCharacter.Bang, Expression.Literal(null))
         .interpret
-    yield expect(result == Right(true))
+    yield expect(result == true)
   }
 
   test(
@@ -92,7 +92,7 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
       for result <- Expression
           .Unary(Token.SingleCharacter.Bang, Expression.Literal(s))
           .interpret
-      yield expect(result == Right(false))
+      yield expect(result == false)
     }
   }
   // todo unary with non-literal expressions
@@ -106,7 +106,7 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
             Expression.Literal(d2),
           )
           .interpret
-      yield expect(result == Right(d1 - d2))
+      yield expect(result == d1 - d2)
     }
   }
 
@@ -119,7 +119,7 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
             Expression.Literal(d2),
           )
           .interpret
-      yield expect(result == Right(d1 / d2))
+      yield expect(result == d1 / d2)
     }
   }
 
@@ -132,7 +132,7 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
             Expression.Literal(d2),
           )
           .interpret
-      yield expect(result == Right(d1 * d2))
+      yield expect(result == d1 * d2)
     }
   }
 
@@ -145,7 +145,7 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
             Expression.Literal(d2),
           )
           .interpret
-      yield expect(result == Right(d1 + d2))
+      yield expect(result == d1 + d2)
     }
   }
 
@@ -158,7 +158,7 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
             Expression.Literal(s2),
           )
           .interpret
-      yield expect(result == Right(s1 + s2))
+      yield expect(result == s1 + s2)
     }
   }
 
@@ -171,7 +171,7 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
             Expression.Literal(d2),
           )
           .interpret
-      yield expect(result == Right(d1 > d2))
+      yield expect(result == d1 > d2)
     }
   }
 
@@ -184,7 +184,7 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
             Expression.Literal(d2),
           )
           .interpret
-      yield expect(result == Right(d1 >= d2))
+      yield expect(result == d1 >= d2)
     }
   }
 
@@ -197,7 +197,7 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
             Expression.Literal(d2),
           )
           .interpret
-      yield expect(result == Right(d1 < d2))
+      yield expect(result == d1 < d2)
     }
   }
 
@@ -210,7 +210,7 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
             Expression.Literal(d2),
           )
           .interpret
-      yield expect(result == Right(d1 <= d2))
+      yield expect(result == d1 <= d2)
     }
   }
 
@@ -223,7 +223,7 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
             Expression.Literal(v),
           )
           .interpret
-      yield expect(result == Right(true))
+      yield expect(result == true)
     }
   }
 
@@ -235,7 +235,7 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
           Expression.Literal(5),
         )
         .interpret
-    yield expect(result == Right(false))
+    yield expect(result == false)
   }
 
   test("evaluate a binary `==` expression on null operands") {
@@ -254,7 +254,7 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
           Expression.Literal("test"),
         )
         .interpret
-    yield expect.all(r1 == Right(true), r2 == Right(false))
+    yield expect.all(r1 == true, r2 == false)
   }
 
   test("evaluate a binary `!=` expression on equal operands") {
@@ -266,7 +266,7 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
             Expression.Literal(v),
           )
           .interpret
-      yield expect(result == Right(false))
+      yield expect(result == false)
     }
   }
 
@@ -278,7 +278,7 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
           Expression.Literal(5),
         )
         .interpret
-    yield expect(result == Right(true))
+    yield expect(result == true)
   }
 
   test("evaluate a binary `!=` expression on null operands") {
@@ -297,7 +297,7 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
           Expression.Literal("test"),
         )
         .interpret
-    yield expect.all(r1 == Right(false), r2 == Right(true))
+    yield expect.all(r1 == false, r2 == true)
   }
 
   test("throw a runtime error evaluating a - binary expression on a string") {

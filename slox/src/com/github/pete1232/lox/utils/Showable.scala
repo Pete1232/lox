@@ -24,4 +24,9 @@ object Showable:
   given Showable[Null] with
     extension (n: Null) def show: String = "nil"
 
+  given [T](using Showable[T]): Showable[List[T]] with
+    extension (list: List[T])
+      def show: String =
+        "[" + list.map(_.show).reduceOption(_ + ", " + _).getOrElse("") + "]"
+
   given [T](using Showable[T]): Show[T] = Show.show(_.show)
