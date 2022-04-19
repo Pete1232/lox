@@ -23,5 +23,5 @@ object ExpressionSuite extends SimpleIOSuite:
 
     val result = expression.show
 
-    expect(result == "(* (- 123.0) (group 45.67))")
+    expect(result == "(* (- 123) (group 45.67))")
   }
