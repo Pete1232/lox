@@ -131,31 +131,36 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
     }
   }
 
-  test("evaluate a binary `-` expression on double operands") {
-    forall { (d1: Double, d2: Double) =>
-      for result <- Expression
-          .Binary(
-            Expression.Literal(d1),
-            Token.SingleCharacter.Minus,
-            Expression.Literal(d2),
-          )
-          .interpret
-      yield expect(result == d1 - d2)
+  test(s"evaluate a binary `/` expression on double operands") {
+    forall { (d1: Double) =>
+      forall(Gen.double.filterNot(_ == 0)) { (d2: Double) =>
+        for result <- Expression
+            .Binary(
+              Expression.Literal(d1),
+              Token.SingleCharacter.Slash,
+              Expression.Literal(d2),
+            )
+            .interpret
+        yield expect(result == d1 / d2)
+      }
     }
   }
 
-  test("evaluate a binary `/` expression on double operands") {
-    forall { (d1: Double, d2: Double) =>
-      for result <- Expression
-          .Binary(
-            Expression.Literal(d1),
-            Token.SingleCharacter.Slash,
-            Expression.Literal(d2),
-          )
-          .interpret
-      yield expect(result == d1 / d2)
-    }
-  }
+  binaryDoubleTest(Token.SingleCharacter.Minus, _ - _)
+  binaryDoubleTest(Token.SingleCharacter.Star, _ * _)
+  binaryDoubleTest(Token.SingleCharacter.Plus, _ + _)
+  binaryDoubleTest(Token.SingleCharacter.Greater, _ > _)
+  binaryDoubleTest(Token.TwoCharacter.GreaterEqual, _ >= _)
+  binaryDoubleTest(Token.SingleCharacter.Less, _ < _)
+  binaryDoubleTest(Token.TwoCharacter.LessEqual, _ <= _)
+
+  binaryDoubleError(Token.SingleCharacter.Slash)
+  binaryDoubleError(Token.SingleCharacter.Minus)
+  binaryDoubleError(Token.SingleCharacter.Star)
+  binaryDoubleError(Token.SingleCharacter.Greater)
+  binaryDoubleError(Token.TwoCharacter.GreaterEqual)
+  binaryDoubleError(Token.SingleCharacter.Less)
+  binaryDoubleError(Token.TwoCharacter.LessEqual)
 
   test("`/` should throw a runtime error on divide by 0") {
     forall { (d: Double) =>
@@ -173,19 +178,6 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
       }
     }
   }
-
-  binaryDoubleTest(Token.SingleCharacter.Star, _ * _)
-  binaryDoubleTest(Token.SingleCharacter.Plus, _ + _)
-  binaryDoubleTest(Token.SingleCharacter.Greater, _ > _)
-  binaryDoubleTest(Token.TwoCharacter.GreaterEqual, _ >= _)
-  binaryDoubleTest(Token.SingleCharacter.Less, _ < _)
-  binaryDoubleTest(Token.TwoCharacter.LessEqual, _ <= _)
-
-  binaryDoubleError(Token.SingleCharacter.Star)
-  binaryDoubleError(Token.SingleCharacter.Greater)
-  binaryDoubleError(Token.TwoCharacter.GreaterEqual)
-  binaryDoubleError(Token.SingleCharacter.Less)
-  binaryDoubleError(Token.TwoCharacter.LessEqual)
 
   test("evaluate a binary `+` expression on string operands") {
     forall { (s1: String, s2: String) =>
