@@ -90,10 +90,10 @@ final class ExpressionInterpreter[F[_]: Sync: Functor]
                       )
                     case t @ Token.SingleCharacter.Plus      =>
                       (left, right) match
-                        case (d1: Double, d2: Double) =>
-                          d1 + d2
-                        case (s1: String, s2: String) =>
-                          s1 + s2
+                        case (d1: Double, d2: Double) => d1 + d2
+                        case (s1: String, s2: String) => s1 + s2
+                        case (s: String, v)           => s + v.show
+                        case (v, s: String)           => v.show + s
                         case _                        =>
                           throw InterpreterError.BinaryCastError(
                             left,

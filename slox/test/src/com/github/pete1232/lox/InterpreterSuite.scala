@@ -164,6 +164,27 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
     }
   }
 
+  test("`+` should be able to automatically convert operands to strings") {
+    forall { (v1: String, v2: LoxValue) =>
+      for
+        r1 <- Expression
+          .Binary(
+            Expression.Literal(v1),
+            Token.SingleCharacter.Plus,
+            Expression.Literal(v2),
+          )
+          .interpret
+        r2 <- Expression
+          .Binary(
+            Expression.Literal(v2),
+            Token.SingleCharacter.Plus,
+            Expression.Literal(v1),
+          )
+          .interpret
+      yield expect.all(r1 == v1 + v2.show, r2 == v2.show + v1)
+    }
+  }
+
   test("evaluate a binary `>` expression on double operands") {
     forall { (d1: Double, d2: Double) =>
       for result <- Expression
@@ -394,6 +415,7 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
       expectError(result) { case _: InterpreterError.UnaryCastError => success }
     }
   }
+  // todo comma with non-literal expressions
 
   private def expectError[T](
       result: IO[T]
