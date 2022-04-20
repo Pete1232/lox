@@ -14,16 +14,50 @@ import weaver.scalacheck.Checkers
 
 object InterpreterSuite extends SimpleIOSuite with Checkers:
 
-  val loxValueGen: Gen[LoxValue] = Gen.oneOf(
-    Gen.double,
-    Gen.alphaNumStr,
-    Gen.oneOf(true, false),
-    Gen.const(null),
+  given Arbitrary[LoxValue] = Arbitrary(
+    Gen.oneOf(
+      Gen.double,
+      Gen.alphaNumStr,
+      Gen.oneOf(true, false),
+      Gen.const(null),
+    )
   )
 
-  given Arbitrary[LoxValue] = Arbitrary(loxValueGen)
-
   given ExpressionContext = ExpressionContext(0)
+
+  val genUnaryToken: Gen[
+    (Token.SingleCharacter.Bang.type | Token.SingleCharacter.Minus.type)
+  ] = Gen.oneOf(
+    Token.SingleCharacter.Bang,
+    Token.SingleCharacter.Minus,
+  )
+
+  // todo implement remaining expresions
+  given Arbitrary[Expression] =
+    Arbitrary(
+      Gen.oneOf(
+        Arbitrary.arbitrary[Expression.Literal],
+        Arbitrary.arbitrary[Expression.Unary],
+      )
+    )
+
+  given Arbitrary[Expression.Literal] =
+    Arbitrary {
+      for value <- Arbitrary.arbitrary[LoxValue]
+      yield Expression.Literal(value)
+    }
+
+  given Arbitrary[Expression.Unary] =
+    Arbitrary {
+      Arbitrary.arbitrary[LoxValue].flatMap {
+        case d: Double =>
+          genUnaryToken
+            .map(token => Expression.Unary(token, Expression.Literal(d)))
+        case other     =>
+          Expression
+            .Unary(Token.SingleCharacter.Bang, Expression.Literal(other))
+      }
+    }
 
   test("evaluating a literal should return its value") {
     forall { (v: LoxValue) =>
@@ -32,15 +66,14 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
     }
   }
 
-  test("evaluating a group should evaluate an inner literal expression") {
-    forall { (v: LoxValue) =>
+  test("evaluating a group should evaluate an inner expression") {
+    forall { (expr: Expression) =>
       for
-        groupResult   <- Expression.Group(Expression.Literal(v)).interpret
-        literalResult <- Expression.Literal(v).interpret
-      yield expect(groupResult == literalResult)
+        groupResult <- Expression.Group(expr).interpret
+        innerResult <- expr.interpret
+      yield expect(groupResult == innerResult)
     }
   }
-  // todo group with other nested expressions
 
   test("evaluate a unary `-` expression with a numeric right operand") {
     forall { (v: Double) =>
@@ -51,7 +84,7 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
     }
   }
 
-  test("throw a runtime error evaluating a unary expression on a string") {
+  test("throw a runtime error evaluating a unary `-` expression on a string") {
     val result = Expression
       .Unary(
         Token.SingleCharacter.Minus,
@@ -97,7 +130,6 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
       yield expect(result == false)
     }
   }
-  // todo unary with non-literal expressions
 
   test("evaluate a binary `-` expression on double operands") {
     forall { (d1: Double, d2: Double) =>
@@ -255,12 +287,12 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
   }
 
   test("evaluate a binary `==` expression on equal operands") {
-    forall { (v: LoxValue) =>
+    forall { (expr: Expression) =>
       for result <- Expression
           .Binary(
-            Expression.Literal(v),
+            expr,
             Token.TwoCharacter.EqualEqual,
-            Expression.Literal(v),
+            expr,
           )
           .interpret
       yield expect(result == true)
@@ -298,12 +330,12 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
   }
 
   test("evaluate a binary `!=` expression on equal operands") {
-    forall { (v: LoxValue) =>
+    forall { (expr: Expression) =>
       for result <- Expression
           .Binary(
-            Expression.Literal(v),
+            expr,
             Token.TwoCharacter.BangEqual,
-            Expression.Literal(v),
+            expr,
           )
           .interpret
       yield expect(result == false)
@@ -359,24 +391,25 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
       )
     }
   }
-  // todo binary with non-literal expressions
   // todo more comprehensive binary errors
 
   test("evaluate a ternary conditional expression") {
-    forall { (v1: LoxValue, v2: LoxValue) =>
+    forall { (e1: Expression, e2: Expression) =>
       for
+        v1 <- e1.interpret
+        v2 <- e2.interpret
         r1 <- Expression
           .Ternary(
             Expression.Literal(true),
-            Expression.Literal(v1),
-            Expression.Literal(v2),
+            e1,
+            e2,
           )
           .interpret
         r2 <- Expression
           .Ternary(
             Expression.Literal(false),
-            Expression.Literal(v1),
-            Expression.Literal(v2),
+            e1,
+            e2,
           )
           .interpret
       yield expect.all(r1 == v1, r2 == v2)
@@ -402,15 +435,16 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
       )
     }
   }
-  // todo ternary with non-literal expressions
 
   test("evaluate a comma expression") {
-    forall { (v1: LoxValue, v2: LoxValue) =>
-      for result <- Expression
+    forall { (e1: Expression, e2: Expression) =>
+      for
+        v2     <- e2.interpret
+        result <- Expression
           .Binary(
-            Expression.Literal(v1),
+            e1,
             Token.SingleCharacter.Comma,
-            Expression.Literal(v2),
+            e2,
           )
           .interpret
       yield expect(result == v2)
@@ -420,19 +454,18 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
   test(
     "throw a runtime error if the left hand operand of a comma expression is invalid"
   ) {
-    forall { (v: LoxValue) =>
+    forall { (expr: Expression) =>
       val result = Expression
         .Binary(
           Expression
             .Unary(Token.SingleCharacter.Minus, Expression.Literal("test")),
           Token.SingleCharacter.Comma,
-          Expression.Literal(v),
+          expr,
         )
         .interpret
       expectError(result) { case _: InterpreterError.UnaryCastError => success }
     }
   }
-  // todo comma with non-literal expressions
 
   private def expectError[T](
       result: IO[T]
