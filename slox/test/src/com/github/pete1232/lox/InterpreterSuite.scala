@@ -366,11 +366,47 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
   }
   // todo ternary with non-literal expressions
 
+  test("evaluate a comma expression") {
+    forall { (v1: LoxValue, v2: LoxValue) =>
+      for result <- Expression
+          .Binary(
+            Expression.Literal(v1),
+            Token.SingleCharacter.Comma,
+            Expression.Literal(v2),
+          )
+          .interpret
+      yield expect(result == v2)
+    }
+  }
+
+  test(
+    "throw a runtime error if the left hand operand of a comma expression is invalid"
+  ) {
+    forall { (v: LoxValue) =>
+      val result = Expression
+        .Binary(
+          Expression
+            .Unary(Token.SingleCharacter.Minus, Expression.Literal("test")),
+          Token.SingleCharacter.Comma,
+          Expression.Literal(v),
+        )
+        .interpret
+      expectError(result) { case _: InterpreterError.UnaryCastError => success }
+    }
+  }
+
   private def expectError[T](
       result: IO[T]
   )(expectation: Throwable => Expectations) =
     result
-      .map(_ => failure("expected a runtime error"))
+      .map(_ =>
+        failure("Expected a runtime error but the interpreter succeeded")
+      )
       .handleError(expectation)
+      .handleError { case t: Throwable =>
+        failure(
+          s"Throwable did not match the expectation. Found ${t.getMessage}"
+        )
+      }
 
 end InterpreterSuite

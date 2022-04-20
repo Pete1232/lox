@@ -48,80 +48,80 @@ final class ExpressionInterpreter[F[_]: Sync: Functor]
                 case Token.SingleCharacter.Bang  =>
                   u.right.interpret.map(v => !booleanValue(v))
             }
-          case b: Expression.Binary  => {
-            for
-              left   <- b.left.interpret
-              right  <- b.right.interpret
-              result <- Sync[F].pure {
-                b.operator match
-                  case Token.SingleCharacter.Comma         =>
-                    ??? // todo comma, eval and discard left
-                  case Token.TwoCharacter.EqualEqual       =>
-                    isEqual(left, right)
-                  case Token.TwoCharacter.BangEqual        =>
-                    !isEqual(left, right)
-                  case t @ Token.SingleCharacter.Greater   =>
-                    comparisonExpression(left, right, t, expr.context.line)(
-                      _ > _
-                    )
-                  case t @ Token.TwoCharacter.GreaterEqual =>
-                    comparisonExpression(left, right, t, expr.context.line)(
-                      _ >= _
-                    )
-                  case t @ Token.SingleCharacter.Less      =>
-                    comparisonExpression(left, right, t, expr.context.line)(
-                      _ < _
-                    )
-                  case t @ Token.TwoCharacter.LessEqual    =>
-                    comparisonExpression(left, right, t, expr.context.line)(
-                      _ <= _
-                    )
-                  case t @ Token.SingleCharacter.Minus     =>
-                    arithmeticExpression(left, right, t, expr.context.line)(
-                      _ - _
-                    )
-                  case t @ Token.SingleCharacter.Slash     =>
-                    arithmeticExpression(left, right, t, expr.context.line)(
-                      _ / _
-                    )
-                  case t @ Token.SingleCharacter.Star      =>
-                    arithmeticExpression(left, right, t, expr.context.line)(
-                      _ * _
-                    )
-                  case t @ Token.SingleCharacter.Plus      =>
-                    (left, right) match
-                      case (d1: Double, d2: Double) =>
-                        d1 + d2
-                      case (s1: String, s2: String) =>
-                        s1 + s2
-                      case _                        =>
-                        throw InterpreterError.BinaryCastError(
-                          left,
-                          right,
-                          t,
-                          expr.context.line,
-                        )
-              }
-            yield result
-          }
-
-          case t: Expression.Ternary => {
-            for
-              left   <- t.left.interpret
-              middle <- t.middle.interpret
-              right  <- t.right.interpret
-              result <- Sync[F].pure {
-                left match
-                  case true  => middle
-                  case false => right
-                  case _     =>
-                    throw InterpreterError.TernaryCastError(
-                      left,
-                      expr.context.line,
-                    )
-              }
-            yield result
-          }
+          case b: Expression.Binary  =>
+            Logger[F].trace(s"Interpreting binary ${b.show}") *> {
+              for
+                left   <- b.left.interpret
+                right  <- b.right.interpret
+                result <- Sync[F].pure {
+                  b.operator match
+                    case Token.SingleCharacter.Comma         => right
+                    case Token.TwoCharacter.EqualEqual       =>
+                      isEqual(left, right)
+                    case Token.TwoCharacter.BangEqual        =>
+                      !isEqual(left, right)
+                    case t @ Token.SingleCharacter.Greater   =>
+                      comparisonExpression(left, right, t, expr.context.line)(
+                        _ > _
+                      )
+                    case t @ Token.TwoCharacter.GreaterEqual =>
+                      comparisonExpression(left, right, t, expr.context.line)(
+                        _ >= _
+                      )
+                    case t @ Token.SingleCharacter.Less      =>
+                      comparisonExpression(left, right, t, expr.context.line)(
+                        _ < _
+                      )
+                    case t @ Token.TwoCharacter.LessEqual    =>
+                      comparisonExpression(left, right, t, expr.context.line)(
+                        _ <= _
+                      )
+                    case t @ Token.SingleCharacter.Minus     =>
+                      arithmeticExpression(left, right, t, expr.context.line)(
+                        _ - _
+                      )
+                    case t @ Token.SingleCharacter.Slash     =>
+                      arithmeticExpression(left, right, t, expr.context.line)(
+                        _ / _
+                      )
+                    case t @ Token.SingleCharacter.Star      =>
+                      arithmeticExpression(left, right, t, expr.context.line)(
+                        _ * _
+                      )
+                    case t @ Token.SingleCharacter.Plus      =>
+                      (left, right) match
+                        case (d1: Double, d2: Double) =>
+                          d1 + d2
+                        case (s1: String, s2: String) =>
+                          s1 + s2
+                        case _                        =>
+                          throw InterpreterError.BinaryCastError(
+                            left,
+                            right,
+                            t,
+                            expr.context.line,
+                          )
+                }
+              yield result
+            }
+          case t: Expression.Ternary =>
+            Logger[F].trace(s"Interpreting ternary ${t.show}") *> {
+              for
+                left   <- t.left.interpret
+                middle <- t.middle.interpret
+                right  <- t.right.interpret
+                result <- Sync[F].pure {
+                  left match
+                    case true  => middle
+                    case false => right
+                    case _     =>
+                      throw InterpreterError.TernaryCastError(
+                        left,
+                        expr.context.line,
+                      )
+                }
+              yield result
+            }
         end match
       }
   end extension
