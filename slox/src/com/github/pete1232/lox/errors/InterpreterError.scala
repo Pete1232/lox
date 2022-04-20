@@ -27,6 +27,14 @@ enum InterpreterError(val message: String, val lineNumber: Int)
         line,
       )
 
+  case TernaryCastError(
+      left: LoxValue,
+      line: Int,
+  ) extends InterpreterError(
+        s"Found ${left.show} at the start of a ternary expression, but expected a boolean.",
+        line,
+      )
+
 object InterpreterError:
 
   given Showable[InterpreterError] with

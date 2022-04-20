@@ -105,7 +105,23 @@ final class ExpressionInterpreter[F[_]: Sync: Functor]
             yield result
           }
 
-          case t: Expression.Ternary => ??? // todo ternary implementation
+          case t: Expression.Ternary => {
+            for
+              left   <- t.left.interpret
+              middle <- t.middle.interpret
+              right  <- t.right.interpret
+              result <- Sync[F].pure {
+                left match
+                  case true  => middle
+                  case false => right
+                  case _     =>
+                    throw InterpreterError.TernaryCastError(
+                      left,
+                      expr.context.line,
+                    )
+              }
+            yield result
+          }
         end match
       }
   end extension

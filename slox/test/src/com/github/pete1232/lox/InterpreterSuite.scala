@@ -21,17 +21,19 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
     Gen.const(null),
   )
 
+  given Arbitrary[LoxValue] = Arbitrary(loxValueGen)
+
   given ExpressionContext = ExpressionContext(0)
 
   test("evaluating a literal should return its value") {
-    forall(loxValueGen) { v =>
+    forall { (v: LoxValue) =>
       for result <- Expression.Literal(v).interpret
       yield expect(result == v)
     }
   }
 
   test("evaluating a group should evaluate an inner literal expression") {
-    forall(loxValueGen) { v =>
+    forall { (v: LoxValue) =>
       for
         groupResult   <- Expression.Group(Expression.Literal(v)).interpret
         literalResult <- Expression.Literal(v).interpret
@@ -41,7 +43,7 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
   // todo group with other nested expressions
 
   test("evaluate a unary `-` expression with a numeric right operand") {
-    forall(Gen.double) { v =>
+    forall { (v: Double) =>
       for result <- Expression
           .Unary(Token.SingleCharacter.Minus, Expression.Literal(v))
           .interpret
@@ -68,7 +70,7 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
   }
 
   test("evaluate a unary `!` expression with a boolean right operand") {
-    forall(Gen.oneOf(true, false)) { v =>
+    forall { (v: Boolean) =>
       for result <- Expression
           .Unary(Token.SingleCharacter.Bang, Expression.Literal(v))
           .interpret
@@ -88,7 +90,7 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
   test(
     "evaluate a unary `!` expression with a string right operand, treating any string as true"
   ) {
-    forall(Gen.alphaNumStr) { s =>
+    forall { (s: String) =>
       for result <- Expression
           .Unary(Token.SingleCharacter.Bang, Expression.Literal(s))
           .interpret
@@ -215,7 +217,7 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
   }
 
   test("evaluate a binary `==` expression on equal operands") {
-    forall(loxValueGen) { v =>
+    forall { (v: LoxValue) =>
       for result <- Expression
           .Binary(
             Expression.Literal(v),
@@ -258,7 +260,7 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
   }
 
   test("evaluate a binary `!=` expression on equal operands") {
-    forall(loxValueGen) { v =>
+    forall { (v: LoxValue) =>
       for result <- Expression
           .Binary(
             Expression.Literal(v),
@@ -321,6 +323,48 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
   }
   // todo binary with non-literal expressions
   // todo more comprehensive binary errors
+
+  test("evaluate a ternary conditional expression") {
+    forall { (v1: LoxValue, v2: LoxValue) =>
+      for
+        r1 <- Expression
+          .Ternary(
+            Expression.Literal(true),
+            Expression.Literal(v1),
+            Expression.Literal(v2),
+          )
+          .interpret
+        r2 <- Expression
+          .Ternary(
+            Expression.Literal(false),
+            Expression.Literal(v1),
+            Expression.Literal(v2),
+          )
+          .interpret
+      yield expect.all(r1 == v1, r2 == v2)
+    }
+  }
+
+  test(
+    "throw a runtime error if the first operand does not evaluate to a boolean"
+  ) {
+    val result = Expression
+      .Ternary(
+        Expression.Literal("not a boolean"),
+        Expression.Literal(5),
+        Expression.Literal(false),
+      )
+      .interpret
+    expectError(result) { case error: InterpreterError.TernaryCastError =>
+      expect(
+        error == InterpreterError.TernaryCastError(
+          "not a boolean",
+          summon[ExpressionContext].line,
+        )
+      )
+    }
+  }
+  // todo ternary with non-literal expressions
 
   private def expectError[T](
       result: IO[T]
