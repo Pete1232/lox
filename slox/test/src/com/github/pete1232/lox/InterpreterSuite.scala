@@ -174,31 +174,18 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
     }
   }
 
-  test("evaluate a binary `*` expression on double operands") {
-    forall { (d1: Double, d2: Double) =>
-      for result <- Expression
-          .Binary(
-            Expression.Literal(d1),
-            Token.SingleCharacter.Star,
-            Expression.Literal(d2),
-          )
-          .interpret
-      yield expect(result == d1 * d2)
-    }
-  }
+  binaryDoubleTest(Token.SingleCharacter.Star, _ * _)
+  binaryDoubleTest(Token.SingleCharacter.Plus, _ + _)
+  binaryDoubleTest(Token.SingleCharacter.Greater, _ > _)
+  binaryDoubleTest(Token.TwoCharacter.GreaterEqual, _ >= _)
+  binaryDoubleTest(Token.SingleCharacter.Less, _ < _)
+  binaryDoubleTest(Token.TwoCharacter.LessEqual, _ <= _)
 
-  test("evaluate a binary `+` expression on double operands") {
-    forall { (d1: Double, d2: Double) =>
-      for result <- Expression
-          .Binary(
-            Expression.Literal(d1),
-            Token.SingleCharacter.Plus,
-            Expression.Literal(d2),
-          )
-          .interpret
-      yield expect(result == d1 + d2)
-    }
-  }
+  binaryDoubleError(Token.SingleCharacter.Star)
+  binaryDoubleError(Token.SingleCharacter.Greater)
+  binaryDoubleError(Token.TwoCharacter.GreaterEqual)
+  binaryDoubleError(Token.SingleCharacter.Less)
+  binaryDoubleError(Token.TwoCharacter.LessEqual)
 
   test("evaluate a binary `+` expression on string operands") {
     forall { (s1: String, s2: String) =>
@@ -231,58 +218,6 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
           )
           .interpret
       yield expect.all(r1 == v1 + v2.show, r2 == v2.show + v1)
-    }
-  }
-
-  test("evaluate a binary `>` expression on double operands") {
-    forall { (d1: Double, d2: Double) =>
-      for result <- Expression
-          .Binary(
-            Expression.Literal(d1),
-            Token.SingleCharacter.Greater,
-            Expression.Literal(d2),
-          )
-          .interpret
-      yield expect(result == d1 > d2)
-    }
-  }
-
-  test("evaluate a binary `>=` expression on double operands") {
-    forall { (d1: Double, d2: Double) =>
-      for result <- Expression
-          .Binary(
-            Expression.Literal(d1),
-            Token.TwoCharacter.GreaterEqual,
-            Expression.Literal(d2),
-          )
-          .interpret
-      yield expect(result == d1 >= d2)
-    }
-  }
-
-  test("evaluate a binary `<` expression on double operands") {
-    forall { (d1: Double, d2: Double) =>
-      for result <- Expression
-          .Binary(
-            Expression.Literal(d1),
-            Token.SingleCharacter.Less,
-            Expression.Literal(d2),
-          )
-          .interpret
-      yield expect(result == d1 < d2)
-    }
-  }
-
-  test("evaluate a binary `<=` expression on double operands") {
-    forall { (d1: Double, d2: Double) =>
-      for result <- Expression
-          .Binary(
-            Expression.Literal(d1),
-            Token.TwoCharacter.LessEqual,
-            Expression.Literal(d2),
-          )
-          .interpret
-      yield expect(result == d1 <= d2)
     }
   }
 
@@ -391,7 +326,6 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
       )
     }
   }
-  // todo more comprehensive binary errors
 
   test("evaluate a ternary conditional expression") {
     forall { (e1: Expression, e2: Expression) =>
@@ -480,5 +414,37 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
           s"Throwable did not match the expectation. Found ${t.getMessage}"
         )
       }
+
+  private def binaryDoubleTest[T <: LoxValue](
+      token: Expression.BinaryOperator,
+      op: (Double, Double) => T,
+  ) =
+    test(s"evaluate a binary `${token.lexeme}` expression on double operands") {
+      forall { (d1: Double, d2: Double) =>
+        for result <- Expression
+            .Binary(
+              Expression.Literal(d1),
+              token,
+              Expression.Literal(d2),
+            )
+            .interpret
+        yield expect(result == op(d1, d2))
+      }
+    }
+
+  private def binaryDoubleError(token: Expression.BinaryOperator) =
+    test(
+      s"throw a runtime error evaluating a binary `${token.lexeme}` expression where at least one operand isn't a double"
+    ) {
+      forall { (expr: Expression, s: String) =>
+        val result =
+          Expression
+            .Binary(expr, token, Expression.Literal(s))
+            .interpret
+        expectError(result) { case error: InterpreterError.BinaryCastError =>
+          success
+        }
+      }
+    }
 
 end InterpreterSuite
