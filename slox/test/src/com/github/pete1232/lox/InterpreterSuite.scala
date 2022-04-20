@@ -32,12 +32,28 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
     Token.SingleCharacter.Minus,
   )
 
-  // todo implement remaining expresions
+  val genBinaryToken: Gen[Expression.BinaryOperator] = Gen.oneOf(
+    Token.TwoCharacter.BangEqual,
+    Token.TwoCharacter.EqualEqual,
+    Token.TwoCharacter.GreaterEqual,
+    Token.TwoCharacter.LessEqual,
+    Token.SingleCharacter.Less,
+    Token.SingleCharacter.Greater,
+    Token.SingleCharacter.Plus,
+    Token.SingleCharacter.Minus,
+    Token.SingleCharacter.Star,
+    Token.SingleCharacter.Slash,
+    Token.SingleCharacter.Comma,
+  )
+
   given Arbitrary[Expression] =
     Arbitrary(
       Gen.oneOf(
         Arbitrary.arbitrary[Expression.Literal],
         Arbitrary.arbitrary[Expression.Unary],
+        Arbitrary.arbitrary[Expression.Binary],
+        Arbitrary.arbitrary[Expression.Ternary],
+        Arbitrary.arbitrary[Expression.Group],
       )
     )
 
@@ -57,6 +73,29 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
           Expression
             .Unary(Token.SingleCharacter.Bang, Expression.Literal(other))
       }
+    }
+
+  given Arbitrary[Expression.Binary] =
+    Arbitrary {
+      for
+        left  <- Gen.double.map(Expression.Literal.apply)
+        token <- genBinaryToken
+        right <- Gen.double.map(Expression.Literal.apply)
+      yield Expression.Binary(left, token, right)
+    }
+
+  given Arbitrary[Expression.Ternary] =
+    Arbitrary {
+      for
+        left   <- Arbitrary.arbitrary[Boolean].map(Expression.Literal.apply)
+        middle <- Arbitrary.arbitrary[Expression]
+        right  <- Arbitrary.arbitrary[Expression]
+      yield Expression.Ternary(left, middle, right)
+    }
+
+  given Arbitrary[Expression.Group] =
+    Arbitrary {
+      Arbitrary.arbitrary[Expression.Literal].map(Expression.Group.apply)
     }
 
   test("evaluating a literal should return its value") {
