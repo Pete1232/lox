@@ -125,6 +125,23 @@ object InterpreterSuite extends SimpleIOSuite with Checkers:
     }
   }
 
+  test("`/` should throw a runtime error on divide by 0") {
+    forall { (d: Double) =>
+      val result = Expression
+        .Binary(
+          Expression.Literal(d),
+          Token.SingleCharacter.Slash,
+          Expression.Literal(0),
+        )
+        .interpret
+      expectError(result) { case error: InterpreterError.DivideByZero =>
+        expect(
+          error == InterpreterError.DivideByZero(summon[ExpressionContext].line)
+        )
+      }
+    }
+  }
+
   test("evaluate a binary `*` expression on double operands") {
     forall { (d1: Double, d2: Double) =>
       for result <- Expression

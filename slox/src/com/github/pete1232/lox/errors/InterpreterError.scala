@@ -27,6 +27,10 @@ enum InterpreterError(val message: String, val lineNumber: Int)
         line,
       )
 
+  case DivideByZero(
+      line: Int
+  ) extends InterpreterError("Cannot divide by 0.", line)
+
   case TernaryCastError(
       left: LoxValue,
       line: Int,

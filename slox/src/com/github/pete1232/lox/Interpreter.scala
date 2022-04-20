@@ -81,9 +81,14 @@ final class ExpressionInterpreter[F[_]: Sync: Functor]
                         _ - _
                       )
                     case t @ Token.SingleCharacter.Slash     =>
-                      arithmeticExpression(left, right, t, expr.context.line)(
-                        _ / _
-                      )
+                      arithmeticExpression(left, right, t, expr.context.line) {
+                        case (d1, d2) =>
+                          if d2 == 0 then
+                            throw InterpreterError.DivideByZero(
+                              expr.context.line
+                            )
+                          else d1 / d2
+                      }
                     case t @ Token.SingleCharacter.Star      =>
                       arithmeticExpression(left, right, t, expr.context.line)(
                         _ * _
